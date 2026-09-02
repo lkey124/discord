@@ -252,6 +252,10 @@ class GuildQueue {
    * Ngắt kết nối và giải phóng tài nguyên
    */
   destroy() {
+    if (this.leaveTimeout) {
+      clearTimeout(this.leaveTimeout);
+      this.leaveTimeout = null;
+    }
     this.stop();
     if (this.connection) {
       try {
