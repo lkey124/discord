@@ -316,7 +316,7 @@ class MessageHandler {
           const testStreamUrl = await new Promise((res, rej) => {
             execFile(binPath, [
               '-g', '-f', 'ba/b',
-              '--extractor-args', 'youtube:player_client=android',
+              '--extractor-args', 'youtube:player_client=android_music,tv_embedded',
               '--no-warnings', '--no-check-certificates', '--no-playlist',
               'https://youtube.com/watch?v=Fe9mf1e88Uk'
             ], (err, stdout) => {

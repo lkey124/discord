@@ -267,7 +267,7 @@ class Extractor {
         const extractPromise = ytDlp.execPromise([
           '-g',
           '-f', 'ba/b',
-          '--extractor-args', 'youtube:player_client=android',
+          '--extractor-args', 'youtube:player_client=android_music,tv_embedded',
           '--no-warnings',
           '--no-check-certificates',
           '--prefer-free-formats',
