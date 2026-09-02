@@ -50,7 +50,21 @@ class VoiceHandler {
     }
 
     // =========================================================================
-    // 2. TỰ ĐỘNG THOÁT PHÒNG KHI KHÔNG CÒN AI TRONG PHÒNG THOẠI (AUTO-LEAVE)
+    // 2. THÀNH VIÊN RỜI KHỎI PHÒNG THOẠI (LEAVE ANNOUNCER)
+    // =========================================================================
+    const leftBotRoom = botVoiceId && oldState.channelId === botVoiceId && newState.channelId !== botVoiceId;
+    if (leftBotRoom && member && queue.ttsEnabled) {
+      // Đếm số người thật CÒN LẠI trong phòng
+      const remainingHumans = activeBotChannel?.members ? activeBotChannel.members.filter(m => !m.user.bot && m.id !== member.id) : null;
+      // Chỉ đọc thông báo rời khi trong phòng vẫn còn người nghe
+      if (remainingHumans && remainingHumans.size > 0) {
+        const nameToAnnounce = member.displayName || member.user.username;
+        await queue.announcer.announceMemberLeave(nameToAnnounce);
+      }
+    }
+
+    // =========================================================================
+    // 3. TỰ ĐỘNG THOÁT PHÒNG KHI KHÔNG CÒN AI TRONG PHÒNG THOẠI (AUTO-LEAVE)
     // =========================================================================
     const activeBotChannel = guild.members.me?.voice?.channel || queue.voiceChannel;
     if (activeBotChannel && activeBotChannel.members) {
@@ -60,7 +74,7 @@ class VoiceHandler {
       if (realHumans.size === 0) {
         // Nếu phòng hoàn toàn không còn ai, kích hoạt đếm ngược đúng 10 giây
         if (!queue.leaveTimeout) {
-          console.log(`[Auto-Leave]: Phòng thoại "${currentChannel.name}" trống. Bot sẽ tự thoát sau đúng 10 giây nếu không ai vào lại.`);
+          console.log(`[Auto-Leave]: Phòng thoại "${activeBotChannel.name}" trống. Bot sẽ tự thoát sau đúng 10 giây nếu không ai vào lại.`);
 
           queue.leaveTimeout = setTimeout(async () => {
             // Kiểm tra lại lần cuối sau 10 giây

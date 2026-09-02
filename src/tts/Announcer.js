@@ -66,6 +66,23 @@ class Announcer {
   }
 
   /**
+   * Đưa lời thông báo rời phòng vào hàng đợi phát âm
+   * @param {string} displayName Tên thành viên
+   */
+  async announceMemberLeave(displayName) {
+    if (!this.guildQueue.ttsEnabled) return;
+
+    const cleanName = displayName.replace(/[^\p{L}\p{N}\s]/gu, '').trim() || displayName;
+    const message = `${cleanName} đã rời phòng`;
+
+    this.ttsQueue.push(message);
+
+    if (!this.isSpeaking) {
+      this.processNext();
+    }
+  }
+
+  /**
    * Tạo Audio Resource từ Fish Audio API hoặc Google TTS dự phòng
    * @param {string} text
    * @returns {Promise<any>}
