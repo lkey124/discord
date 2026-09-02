@@ -38,7 +38,7 @@ if (fs.existsSync(binFile)) {
 
 const downloadUrl = isWin
   ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
-  : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+  : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
 
 console.log(`⬇️ Đang tải yt-dlp binary cho ${process.platform}...`);
 
