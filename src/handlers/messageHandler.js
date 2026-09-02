@@ -316,7 +316,7 @@ class MessageHandler {
           const { execFile } = require('child_process');
           const version = await new Promise((res, rej) => {
             if (!binPath) return rej(new Error('Không tìm thấy file binary yt-dlp'));
-            execFile(binPath, ['--version'], (err, stdout) => {
+            execFile(binPath, ['--version'], { timeout: 15000 }, (err, stdout) => {
               if (err) rej(err);
               else res(stdout.trim());
             });
@@ -329,7 +329,7 @@ class MessageHandler {
               '--extractor-args', 'youtube:player_client=android_music,tv_embedded',
               '--no-warnings', '--no-check-certificates', '--no-playlist',
               'https://youtube.com/watch?v=Fe9mf1e88Uk'
-            ], (err, stdout) => {
+            ], { timeout: 20000 }, (err, stdout) => {
               if (err) rej(err);
               else res(stdout.trim());
             });
