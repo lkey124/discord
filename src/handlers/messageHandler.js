@@ -344,6 +344,9 @@ class MessageHandler {
           continue;
         }
 
+        // Xóa thông báo bóc tách ngay khi có kết quả bài hát
+        statusMsg.delete().catch(() => {});
+
         let addedCount = 0;
         for (const song of songs) {
           if (!queue.currentSong) {
@@ -372,6 +375,7 @@ class MessageHandler {
       }
     } catch (err) {
       console.error('[Music Process Error]:', err);
+      statusMsg.delete().catch(() => {});
       const errAlert = await message.channel.send(`❌ Gặp sự cố khi xử lý bài hát: \`${err.message || err}\``);
       setTimeout(() => errAlert.delete().catch(() => {}), 10000);
     } finally {

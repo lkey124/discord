@@ -26,6 +26,12 @@ if (!fs.existsSync(binDir)) {
 }
 
 if (fs.existsSync(binFile)) {
+  if (!isWin) {
+    try {
+      fs.chmodSync(binFile, '755');
+      console.log('✅ Đã cấp quyền 755 cho file thực thi yt-dlp Linux');
+    } catch (e) {}
+  }
   console.log('✅ yt-dlp binary đã tồn tại:', binFile);
   process.exit(0);
 }

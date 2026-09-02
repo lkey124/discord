@@ -168,6 +168,9 @@ class Extractor {
     const binFile = path.join(binDir, isWin ? 'yt-dlp.exe' : 'yt-dlp');
 
     if (fs.existsSync(binFile)) {
+      if (!isWin) {
+        try { fs.chmodSync(binFile, '755'); } catch (e) {}
+      }
       return binFile;
     }
 
@@ -237,7 +240,7 @@ class Extractor {
       const binPath = await this.getYtDlpPath();
       if (binPath) {
         const ytDlp = new YTDlpWrap(binPath);
-        const directUrl = (await ytDlp.execPromise([
+        const extractPromise = ytDlp.execPromise([
           '-g',
           '-f', 'ba/b',
           '--extractor-args', 'youtube:player_client=android',
@@ -246,7 +249,13 @@ class Extractor {
           '--prefer-free-formats',
           '--no-playlist',
           finalUrl
-        ])).trim();
+        ]);
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 12s)')), 12000)
+        );
+
+        const directUrl = (await Promise.race([extractPromise, timeoutPromise])).trim();
 
         if (directUrl && directUrl.startsWith('http')) {
           // Lưu vào Cache 1 tiếng
