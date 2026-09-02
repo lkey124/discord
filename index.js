@@ -48,16 +48,19 @@ const server = http.createServer((req, res) => {
   }, null, 2));
 });
 
+let currentPort = Number(process.env.PORT || 3000);
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.warn(`⚠️ Cổng ${port} đang bận. Đang chuyển sang cổng kế tiếp...`);
-    server.listen(Number(port) + 1);
+    currentPort++;
+    console.warn(`⚠️ Cổng đang bận. Đang thử cổng ${currentPort}...`);
+    server.listen(currentPort);
   } else {
     console.error('[HTTP Server Error]:', err.message);
   }
 });
 
-server.listen(port, () => {
+server.listen(currentPort, () => {
   console.log(`🌐 HTTP Health Check Server đang lắng nghe tại cổng: ${server.address().port} (Chuẩn Render 24/7)`);
   // Bắt đầu chu kỳ tự động ping giữ thức 24/7
   keepAliveService.port = server.address().port;

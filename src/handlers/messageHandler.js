@@ -40,7 +40,39 @@ class MessageHandler {
     }
 
     // =========================================================================
-    // 2. TRIẾT LÝ "ZERO-TYPING": TỰ ĐỘNG BẮT LINK NHẠC DÁN TRỰC TIẾP VÀO CHAT
+    // 2. LỆNH TRIỆU HỒI / RỜI PHÒNG VOICE CHỦ ĐỘNG (!join, !vao, !leave, !out)
+    // =========================================================================
+    const lowerContent = trimmedContent.toLowerCase();
+    if (['!join', '!vao', '!call', '!bot'].includes(lowerContent)) {
+      const memberVoice = message.member?.voice?.channel;
+      if (!memberVoice) {
+        const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại (Voice Channel) trước khi triệu hồi bot!');
+        setTimeout(() => warn.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      const queue = queueManager.get(message.guild);
+      queue.textChannel = message.channel;
+      await queue.connect(memberVoice);
+
+      const replyMsg = await message.reply({
+        content: `🟢 **Đã kết nối vào phòng:** <#${memberVoice.id}>!\n*(Bây giờ bạn chỉ việc dán link YouTube/Spotify vào chat là bot sẽ tự phát luôn)* 🎵`,
+        components: [Components.voiceActionRow()]
+      });
+      setTimeout(() => replyMsg.delete().catch(() => {}), 15000);
+      return;
+    }
+
+    if (['!leave', '!out', '!kick'].includes(lowerContent)) {
+      const queue = queueManager.get(message.guild);
+      queue.destroy();
+      const leaveMsg = await message.reply('🔴 **Đã ngắt kết nối và rời khỏi phòng thoại!**');
+      setTimeout(() => leaveMsg.delete().catch(() => {}), 5000);
+      return;
+    }
+
+    // =========================================================================
+    // 3. TRIẾT LÝ "ZERO-TYPING": TỰ ĐỘNG BẮT LINK NHẠC DÁN TRỰC TIẾP VÀO CHAT
     // =========================================================================
     const musicUrls = Extractor.extractUrls(trimmedContent);
     if (musicUrls.length === 0) return;
