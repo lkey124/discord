@@ -19,8 +19,11 @@ class MessageHandler {
     MessageHandler.processedMessages.add(message.id);
     setTimeout(() => MessageHandler.processedMessages.delete(message.id), 5000);
 
-    const trimmedContent = message.content.trim();
-    if (!trimmedContent) return;
+    let trimmedContent = message.content.trim();
+    // Tự động tách khoảng trắng nếu gõ dính liền như !phathttps... hoặc !phttps...
+    trimmedContent = trimmedContent.replace(/^!phat(https?:\/\/)/i, '!phat $1');
+    trimmedContent = trimmedContent.replace(/^!p(https?:\/\/)/i, '!p $1');
+    trimmedContent = trimmedContent.replace(/^!hat(https?:\/\/)/i, '!hat $1');
 
     // =========================================================================
     // 1. CƠ CHẾ LỆNH ẨN ADMIN TUYỆT ĐỐI (Invisible Admin Trigger)
@@ -115,10 +118,17 @@ class MessageHandler {
           return;
         }
 
-        const memberVoice = message.member?.voice?.channel;
+        let memberVoice = message.member?.voice?.channel;
         if (!memberVoice) {
-          const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại trước khi bật nhạc!');
-          setTimeout(() => warn.delete().catch(() => {}), 6000);
+          memberVoice = message.guild.channels.cache.find(c => c.isVoiceBased() && c.joinable);
+          if (memberVoice) {
+            const autoNotice = await message.channel.send(`💡 Bạn chưa vào phòng thoại, bot tự động vào phòng **${memberVoice.name}** để phát nhạc trước!`);
+            setTimeout(() => autoNotice.delete().catch(() => {}), 8000);
+          }
+        }
+        if (!memberVoice) {
+          const warn = await message.reply('⚠️ Máy chủ chưa có phòng thoại (Voice Channel) nào để bot vào phát nhạc!');
+          setTimeout(() => warn.delete().catch(() => {}), 8000);
           return;
         }
 
@@ -344,10 +354,17 @@ class MessageHandler {
       return;
     }
 
-    const memberVoice = message.member?.voice?.channel;
+    let memberVoice = message.member?.voice?.channel;
     if (!memberVoice) {
-      const warnMsg = await message.reply('⚠️ Bạn cần tham gia một phòng thoại (Voice Channel) trước khi dán link nghe nhạc!');
-      setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
+      memberVoice = message.guild.channels.cache.find(c => c.isVoiceBased() && c.joinable);
+      if (memberVoice) {
+        const autoNotice = await message.channel.send(`💡 Bạn chưa vào phòng thoại, bot tự động vào phòng **${memberVoice.name}** để phát nhạc trước cho bạn!`);
+        setTimeout(() => autoNotice.delete().catch(() => {}), 8000);
+      }
+    }
+    if (!memberVoice) {
+      const warnMsg = await message.reply('⚠️ Máy chủ chưa có phòng thoại (Voice Channel) nào để bot vào phát nhạc!');
+      setTimeout(() => warnMsg.delete().catch(() => {}), 8000);
       return;
     }
 
