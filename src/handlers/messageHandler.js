@@ -179,11 +179,11 @@ class MessageHandler {
       if (['tamdung', 'dung', 'pause'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
 
-        // Kiểm tra quyền: Chỉ người gửi bài hoặc Admin mới được tạm dừng
-        const isOwnerOrAdmin = (queue.currentSong.requester?.id === message.author.id) || config.isAdmin(message.author);
-        if (!isOwnerOrAdmin) {
+        // Kiểm tra quyền: CHỈ người gửi bài mới được tạm dừng
+        const isOwner = (queue.currentSong.requester?.id === message.author.id);
+        if (!isOwner) {
           const reqName = queue.currentSong.requester ? `<@${queue.currentSong.requester.id}>` : 'người yêu cầu';
-          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) hoặc Admin mới có quyền tạm dừng!`);
+          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) mới có quyền tạm dừng!`);
           setTimeout(() => warn.delete().catch(() => {}), 6000);
           return;
         }
@@ -197,11 +197,11 @@ class MessageHandler {
       if (['tieptuc', 'tiep', 'resume'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
 
-        // Kiểm tra quyền: Chỉ người gửi bài hoặc Admin mới được tiếp tục
-        const isOwnerOrAdmin = (queue.currentSong.requester?.id === message.author.id) || config.isAdmin(message.author);
-        if (!isOwnerOrAdmin) {
+        // Kiểm tra quyền: CHỈ người gửi bài mới được tiếp tục
+        const isOwner = (queue.currentSong.requester?.id === message.author.id);
+        if (!isOwner) {
           const reqName = queue.currentSong.requester ? `<@${queue.currentSong.requester.id}>` : 'người yêu cầu';
-          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) hoặc Admin mới có quyền tiếp tục phát!`);
+          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) mới có quyền tiếp tục phát!`);
           setTimeout(() => warn.delete().catch(() => {}), 6000);
           return;
         }
@@ -223,11 +223,11 @@ class MessageHandler {
       if (['tat', 'dunglai', 'stop'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang phát!');
 
-        // Kiểm tra quyền: Chỉ người gửi bài hoặc Admin mới được tắt
-        const isOwnerOrAdmin = (queue.currentSong.requester?.id === message.author.id) || config.isAdmin(message.author);
-        if (!isOwnerOrAdmin) {
+        // Kiểm tra quyền: CHỈ người gửi bài mới được tắt
+        const isOwner = (queue.currentSong.requester?.id === message.author.id);
+        if (!isOwner) {
           const reqName = queue.currentSong.requester ? `<@${queue.currentSong.requester.id}>` : 'người yêu cầu';
-          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) hoặc Admin mới có quyền tắt nhạc!`);
+          const warn = await message.reply(`⚠️ Chỉ có người gửi bài hát này (${reqName}) mới có quyền tắt nhạc!`);
           setTimeout(() => warn.delete().catch(() => {}), 6000);
           return;
         }
