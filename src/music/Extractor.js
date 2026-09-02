@@ -208,22 +208,24 @@ class Extractor {
       }
     }
 
-    // 1. Ưu tiên sử dụng yt-dlp để bypass cơ chế chặn định dạng âm thanh của YouTube
+    // 1. Ưu tiên sử dụng yt-dlp trích xuất Direct HTTPS CDN URL (Chấm dứt lỗi Premature close)
     try {
       const binPath = await this.getYtDlpPath();
       if (binPath) {
         const ytDlp = new YTDlpWrap(binPath);
-        const stream = ytDlp.execStream([
-          finalUrl,
+        const directUrl = (await ytDlp.execPromise([
+          '-g',
           '-f', 'bestaudio',
-          '-o', '-',
           '--no-playlist',
-          '--buffer-size', '16K'
-        ]);
-        return { stream, type: 'arbitrary' };
+          finalUrl
+        ])).trim();
+
+        if (directUrl && directUrl.startsWith('http')) {
+          return { stream: directUrl, type: 'arbitrary' };
+        }
       }
     } catch (ytDlpErr) {
-      console.warn('[yt-dlp stream error]:', ytDlpErr.message, 'Đang thử phương thức phụ...');
+      console.warn('[yt-dlp direct url error]:', ytDlpErr.message, 'Đang thử phương thức phụ...');
     }
 
     // 2. Dự phòng bằng play-dl

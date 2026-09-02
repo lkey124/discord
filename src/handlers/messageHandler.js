@@ -105,6 +105,9 @@ class MessageHandler {
       await queue.connect(memberVoice);
     }
 
+    // Tự động xóa tin nhắn dán link của người dùng để giữ kênh chat sạch đẹp
+    await message.delete().catch(() => {});
+
     const statusMsg = await message.channel.send('🔍 Đang bóc tách luồng audio sạch 100% không quảng cáo...');
 
     try {
