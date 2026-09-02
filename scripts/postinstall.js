@@ -71,5 +71,15 @@ function download(url, dest, cb) {
 download(downloadUrl, binFile, (err) => {
   if (err) console.warn('⚠️ Tải yt-dlp trong postinstall cảnh báo:', err.message);
   else console.log('✅ Đã tải và cấp quyền thực thi cho yt-dlp thành công!');
+
+  // 3. Đảm bảo quyền thực thi cho ffmpeg-static trên Linux
+  try {
+    const ffmpegStatic = require('ffmpeg-static');
+    if (ffmpegStatic && !isWin && fs.existsSync(ffmpegStatic)) {
+      fs.chmodSync(ffmpegStatic, '755');
+      console.log('✅ Đã cấp quyền 755 cho ffmpeg-static Linux');
+    }
+  } catch (e) {}
+
   process.exit(0);
 });

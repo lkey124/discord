@@ -1,3 +1,10 @@
+try {
+  const ffmpegStatic = require('ffmpeg-static');
+  if (ffmpegStatic && !process.env.FFMPEG_PATH) {
+    process.env.FFMPEG_PATH = ffmpegStatic;
+  }
+} catch (e) {}
+
 const {
   joinVoiceChannel,
   createAudioPlayer,
@@ -120,6 +127,10 @@ class GuildQueue {
       const resource = createAudioResource(audioData.stream, {
         inputType: audioData.type,
         inlineVolume: true
+      });
+
+      resource.playStream.on('error', (streamErr) => {
+        console.error('[AudioResource Stream Error]:', streamErr.message);
       });
 
       this.isPaused = false;

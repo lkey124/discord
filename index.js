@@ -1,3 +1,14 @@
+// Tự động cấu hình FFmpeg Static cho môi trường Linux/Render
+try {
+  const ffmpegStatic = require('ffmpeg-static');
+  if (ffmpegStatic) {
+    process.env.FFMPEG_PATH = ffmpegStatic;
+    console.log('[FFmpeg]: Đã kích hoạt binary ffmpeg-static:', ffmpegStatic);
+  }
+} catch (e) {
+  console.warn('[FFmpeg]: Không tìm thấy ffmpeg-static:', e.message);
+}
+
 const http = require('http');
 const { Client, GatewayIntentBits, Partials, ActivityType, Events } = require('discord.js');
 const config = require('./src/config');
