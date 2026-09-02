@@ -23,35 +23,46 @@ const client = new Client({
   ]
 });
 
+const KeepAlive = require('./src/services/KeepAlive');
+
 // =========================================================================
-// HTTP HEALTH CHECK SERVER (Dành cho Render Web Service 24/7)
+// HTTP HEALTH CHECK SERVER & INTERNAL SELF-PINGER (24/7 Không cần App ngoài)
 // =========================================================================
 const port = process.env.PORT || 3000;
+const keepAliveService = new KeepAlive(port);
+
 const server = http.createServer((req, res) => {
+  if (req.url === '/health' || req.url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    return res.end('OK');
+  }
+
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({
     status: 'online',
-    message: 'Discord Music & Voice Announcer Bot đang chạy 24/7!',
+    message: 'Discord Music & Voice Announcer Bot đang chạy 24/7 không cần app ngoài!',
     bot: client.user ? client.user.tag : 'đang khởi động...',
     uptimeSeconds: Math.floor(process.uptime()),
+    keepAlive: keepAliveService.getStatus(),
     timestamp: new Date().toISOString()
   }, null, 2));
 });
 
-server.listen(port, () => {
-  console.log(`🌐 HTTP Health Check Server đang lắng nghe tại cổng: ${port} (Chuẩn Render 24/7)`);
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.warn(`⚠️ Cổng ${port} đang bận. Đang chuyển sang cổng kế tiếp...`);
+    server.listen(Number(port) + 1);
+  } else {
+    console.error('[HTTP Server Error]:', err.message);
+  }
 });
 
-// Tự động Ping để duy trì thức 24/7 không bị Sleep trên Render
-const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || process.env.KEEP_ALIVE_URL;
-if (keepAliveUrl) {
-  console.log(`🔄 Kích hoạt cơ chế Anti-Sleep tự động ping: ${keepAliveUrl}`);
-  setInterval(async () => {
-    try {
-      await fetch(keepAliveUrl);
-    } catch (e) {}
-  }, 10 * 60 * 1000); // 10 phút một lần
-}
+server.listen(port, () => {
+  console.log(`🌐 HTTP Health Check Server đang lắng nghe tại cổng: ${server.address().port} (Chuẩn Render 24/7)`);
+  // Bắt đầu chu kỳ tự động ping giữ thức 24/7
+  keepAliveService.port = server.address().port;
+  keepAliveService.start();
+});
 
 // Sự kiện khi Bot sẵn sàng hoạt động
 client.once(Events.ClientReady, () => {

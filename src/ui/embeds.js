@@ -136,10 +136,11 @@ class Embeds {
         { name: '📊 Trạng thái phát', value: `\`${isPaused}\``, inline: true },
         { name: '🔒 Chế độ DJ (DJ Only)', value: queue?.djOnly ? '🔴 **ĐANG KHÓA** (Chỉ Admin được dán link)' : '🟢 **ĐANG MỞ** (Mọi người được dán link)', inline: true },
         { name: '📢 Voice Announcer (TTS)', value: queue?.ttsEnabled ? '🟢 **BẬT** (Đọc tên khi vào)' : '🔴 **TẮT**', inline: true },
-        { name: '📜 Số bài trong Queue', value: `\`${queueCount} bài\``, inline: true }
+        { name: '📜 Số bài trong Queue', value: `\`${queueCount} bài\``, inline: true },
+        { name: '⚡ Tự Động Giữ Thức 24/7', value: '🟢 **Đang Tự Động Ping** (Không cần App ngoài)', inline: false }
       )
       .setFooter({
-        text: 'Lệnh bí mật kích hoạt an toàn • Tự động xóa sau khi mở',
+        text: 'Lệnh bí mật kích hoạt an toàn • Tự động xóa sau khi mở • 24/7 Render Anti-Sleep',
         iconURL: guild.iconURL() || undefined
       })
       .setTimestamp();
