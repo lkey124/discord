@@ -53,8 +53,15 @@ class GuildQueue {
       channelId: voiceChannel.id,
       guildId: this.guild.id,
       adapterCreator: this.guild.voiceAdapterCreator,
-      selfDeaf: true
+      selfDeaf: true,
+      selfMute: false
     });
+
+    try {
+      await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
+    } catch (e) {
+      console.warn('[VoiceConnection]: Đang hoàn tất bắt tay UDP...');
+    }
 
     // Lắng nghe trạng thái ngắt kết nối
     this.connection.on(VoiceConnectionStatus.Disconnected, async () => {

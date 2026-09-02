@@ -19,10 +19,12 @@
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
     "@distube/ytdl-core": "^4.16.12",
+    "@stablelib/xchacha20poly1305": "^2.0.1",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "ffmpeg-static": "^5.2.0",
     "google-tts-api": "^2.0.2",
+    "libsodium-wrappers": "^0.8.4",
     "opusscript": "^0.1.1",
     "play-dl": "^1.9.7",
     "tweetnacl": "^1.0.3",

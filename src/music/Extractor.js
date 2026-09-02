@@ -6,9 +6,9 @@ const Song = require('./Song');
 
 class Extractor {
   /**
-   * Biểu thức chính quy phát hiện link âm nhạc trong tin nhắn
+   * Biểu thức chính quy phát hiện link âm nhạc trong tin nhắn (Hỗ trợ mọi subdomain: m., music., youtu.be, spotify...)
    */
-  static MUSIC_URL_REGEX = /(https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be|open\.spotify\.com|soundcloud\.com)[^\s]+)/gi;
+  static MUSIC_URL_REGEX = /(https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:youtube\.com|youtu\.be|spotify\.com|soundcloud\.com)[^\s>]+)/gi;
 
   /**
    * Trích xuất các liên kết âm nhạc từ nội dung văn bản
