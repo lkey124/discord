@@ -15,19 +15,33 @@ class VoiceHandler {
 
     const queue = queueManager.get(guild);
 
-    // Kiểm tra bot có đang trong phòng thoại nào của server không
-    const botVoiceId = queue.voiceChannel?.id;
-    if (!botVoiceId) return;
+    // Xác định kênh phòng thoại bot đang tham gia (nếu có)
+    const botVoiceChannel = guild.members.me?.voice?.channel || queue.voiceChannel;
+    const botVoiceId = botVoiceChannel?.id;
 
     // =========================================================================
-    // 1. THÀNH VIÊN THAM GIA VÀO PHÒNG THOẠI CỦA BOT (VOICE ANNOUNCER)
+    // 1. THÀNH VIÊN THAM GIA VÀO PHÒNG THOẠI (VOICE ANNOUNCER)
     // =========================================================================
-    const joinedBotRoom = newState.channelId === botVoiceId && oldState.channelId !== botVoiceId;
+    const member = newState.member;
+    const newChannel = newState.channel;
 
-    if (joinedBotRoom) {
-      const member = newState.member;
-      if (member) {
-        // Kiểm tra cooldown 10 giây chống spam ra vào
+    // Trường hợp 1: Thành viên bước vào phòng thoại khi bot chưa ở trong phòng nào -> Tự động kết nối và chào
+    if (newChannel && !botVoiceId && queue.ttsEnabled && oldState.channelId !== newState.channelId) {
+      if (queue.announcer.canAnnounce(member.id)) {
+        try {
+          await queue.connect(newChannel);
+          const nameToAnnounce = member.displayName || member.user.username;
+          setTimeout(() => {
+            queue.announcer.announceMemberJoin(nameToAnnounce);
+          }, 800);
+        } catch (e) {
+          console.warn('[Auto-Join Voice Announcer Error]:', e.message);
+        }
+      }
+    }
+    // Trường hợp 2: Thành viên bước vào phòng thoại MÀ BOT ĐANG CÓ MẶT
+    else if (botVoiceId && newState.channelId === botVoiceId && oldState.channelId !== botVoiceId) {
+      if (member && queue.ttsEnabled) {
         if (queue.announcer.canAnnounce(member.id)) {
           const nameToAnnounce = member.displayName || member.user.username;
           await queue.announcer.announceMemberJoin(nameToAnnounce);
@@ -38,10 +52,10 @@ class VoiceHandler {
     // =========================================================================
     // 2. TỰ ĐỘNG THOÁT PHÒNG KHI KHÔNG CÒN AI TRONG PHÒNG THOẠI (AUTO-LEAVE)
     // =========================================================================
-    const currentChannel = guild.channels.cache.get(botVoiceId) || queue.voiceChannel;
-    if (currentChannel && currentChannel.members) {
+    const activeBotChannel = guild.members.me?.voice?.channel || queue.voiceChannel;
+    if (activeBotChannel && activeBotChannel.members) {
       // Đếm số người thật đang có mặt trong phòng (loại trừ các bot)
-      const realHumans = currentChannel.members.filter(m => !m.user.bot);
+      const realHumans = activeBotChannel.members.filter(m => !m.user.bot);
 
       if (realHumans.size === 0) {
         // Nếu phòng hoàn toàn không còn ai, kích hoạt đếm ngược đúng 10 giây

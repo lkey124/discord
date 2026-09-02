@@ -292,7 +292,7 @@ class MessageHandler {
           await queue.connect(memberVoice);
         }
 
-        await queue.announcer.announceMemberJoin(textToSay);
+        await queue.announcer.speak(textToSay);
         await message.delete().catch(() => {});
         return;
       }

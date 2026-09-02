@@ -102,17 +102,46 @@ class Announcer {
       }
     }
 
-    // 2. Dự phòng an toàn: Sử dụng Google TTS tiếng Việt
-    const url = googleTTS.getAudioUrl(text, {
-      lang: config.ttsLang,
-      slow: false,
-      host: 'https://translate.google.com',
-      timeout: 10000
-    });
+    // 2. Dự phòng an toàn: Sử dụng Google TTS tiếng Việt (tải qua Buffer chống chặn)
+    try {
+      const url = googleTTS.getAudioUrl(text, {
+        lang: config.ttsLang,
+        slow: false,
+        host: 'https://translate.google.com',
+        timeout: 10000
+      });
 
-    const resource = createAudioResource(url, { inlineVolume: true });
-    if (resource.volume) resource.volume.setVolume(1.2);
-    return resource;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        }
+      });
+
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const stream = Readable.from(buffer);
+        const resource = createAudioResource(stream, { inlineVolume: true });
+        if (resource.volume) resource.volume.setVolume(1.4);
+        return resource;
+      }
+    } catch (gErr) {
+      console.error('[Google TTS Buffer Error]:', gErr.message);
+    }
+
+    return null;
+  }
+
+  /**
+   * Phát trực tiếp câu nói bất kỳ (dành cho lệnh !noi)
+   * @param {string} text
+   */
+  async speak(text) {
+    if (!text) return;
+    this.ttsQueue.push(text);
+    if (!this.isSpeaking) {
+      this.processNext();
+    }
   }
 
   /**
