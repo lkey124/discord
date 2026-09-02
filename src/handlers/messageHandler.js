@@ -5,12 +5,19 @@ const Embeds = require('../ui/embeds');
 const Components = require('../ui/components');
 
 class MessageHandler {
+  static processedMessages = new Set();
+
   /**
    * Xử lý toàn bộ tin nhắn chat trong server (Hỗ trợ Zero-Typing và Hệ thống Lệnh đầy đủ)
    * @param {object} message Discord Message
    */
   static async handle(message) {
     if (message.author.bot || !message.guild) return;
+
+    // Chống xử lý trùng lặp sự kiện cùng một tin nhắn trong 5 giây
+    if (MessageHandler.processedMessages.has(message.id)) return;
+    MessageHandler.processedMessages.add(message.id);
+    setTimeout(() => MessageHandler.processedMessages.delete(message.id), 5000);
 
     const trimmedContent = message.content.trim();
     if (!trimmedContent) return;
@@ -143,8 +150,12 @@ class MessageHandler {
               queue.songs.push(song);
               await queue.playNext();
             } else {
-              queue.songs.push(song);
-              addedCount++;
+              const isCurrent = queue.currentSong?.url === song.url;
+              const isLastInQueue = queue.songs.length > 0 && queue.songs[queue.songs.length - 1].url === song.url;
+              if (!isCurrent && !isLastInQueue) {
+                queue.songs.push(song);
+                addedCount++;
+              }
             }
           }
 
@@ -298,13 +309,18 @@ class MessageHandler {
         const songs = await Extractor.resolve(url, message.author);
         if (songs.length === 0) continue;
 
+        let addedCount = 0;
         for (const song of songs) {
           if (!queue.currentSong) {
             queue.songs.push(song);
             await queue.playNext();
           } else {
-            queue.songs.push(song);
-            addedCount++;
+            const isCurrent = queue.currentSong?.url === song.url;
+            const isLastInQueue = queue.songs.length > 0 && queue.songs[queue.songs.length - 1].url === song.url;
+            if (!isCurrent && !isLastInQueue) {
+              queue.songs.push(song);
+              addedCount++;
+            }
           }
         }
 

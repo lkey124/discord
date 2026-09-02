@@ -14,39 +14,27 @@ class Embeds {
   }
 
   /**
-   * Embed trình phát nhạc đang chạy (Now Playing)
+   * Embed trình phát nhạc đang chạy (Now Playing) - Thiết kế siêu gọn gàng (Minimalist)
    */
   static nowPlaying(song, queue, statusText = 'Đang phát') {
-    const loopLabels = {
-      0: '❌ Tắt',
-      1: '🔂 Lặp bài hiện tại',
-      2: '🔁 Lặp toàn bộ hàng đợi'
-    };
+    const loopIcons = { 0: '', 1: ' • 🔂 Lặp bài', 2: ' • 🔁 Lặp queue' };
+    const requester = song.requester ? `<@${song.requester.id}>` : 'Mọi người';
 
     const embed = new EmbedBuilder()
-      .setColor('#2F3136')
-      .setTitle(`🎶 ${statusText}: ${song.title}`)
+      .setColor('#5865F2')
+      .setTitle(`🎵 ${statusText}: ${song.title}`)
       .setURL(song.url)
-      .setAuthor({
-        name: 'Discord Music Player • Zero-Typing',
-        iconURL: 'https://cdn-icons-png.flaticon.com/512/3845/3845874.png'
-      })
       .setDescription(
-        `**Tác giả:** \`${song.author}\`\n` +
-        `**Thời lượng:** \`${song.duration}\`\n` +
-        `**Yêu cầu bởi:** <@${song.requester ? song.requester.id : 'N/A'}>\n` +
-        `**Chế độ lặp:** \`${loopLabels[queue.loopMode] || '❌ Tắt'}\`\n` +
-        `**Voice Announcer:** \`${queue.ttsEnabled ? '🔊 Bật' : '🔇 Tắt'}\` | **Chế độ DJ:** \`${queue.djOnly ? '🔒 Bật' : '🔓 Tắt'}\`\n\n` +
+        `👤 **${song.author}** • ⏱️ **${song.duration}** • 🙋 ${requester}${loopIcons[queue.loopMode] || ''}\n\n` +
         `\`00:00\` ${this.createProgressBar(1, song.durationSec || 100)} \`${song.duration}\``
-      )
-      .setFooter({
-        text: `Hàng đợi còn: ${queue.songs.length} bài • Dán trực tiếp link nhạc để thêm bài tự động!`,
-        iconURL: song.requester ? song.requester.displayAvatarURL() : undefined
-      })
-      .setTimestamp();
+      );
 
     if (song.thumbnail) {
       embed.setThumbnail(song.thumbnail);
+    }
+
+    if (queue.songs.length > 0) {
+      embed.setFooter({ text: `Hàng đợi còn: ${queue.songs.length} bài tiếp theo` });
     }
 
     return embed;

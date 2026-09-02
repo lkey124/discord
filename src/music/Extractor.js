@@ -29,11 +29,17 @@ class Extractor {
    */
   static async resolve(url, requester) {
     try {
-      const validated = await play.validate(url);
+      let cleanUrl = url;
+      // Nếu là link video đơn lẻ nhưng YouTube tự đính kèm Radio Mix (&list=RD...), chỉ lấy video chính
+      if (cleanUrl.includes('youtube.com/watch') && (cleanUrl.includes('&list=RD') || cleanUrl.includes('&start_radio='))) {
+        cleanUrl = cleanUrl.replace(/&list=RD[^&]+/gi, '').replace(/&start_radio=[^&]+/gi, '').replace(/&index=[^&]+/gi, '');
+      }
+
+      const validated = await play.validate(cleanUrl);
 
       // 1. YouTube Video đơn lẻ
       if (validated === 'yt_video') {
-        const info = await play.video_basic_info(url);
+        const info = await play.video_basic_info(cleanUrl);
         const details = info.video_details;
         return [
           new Song({
