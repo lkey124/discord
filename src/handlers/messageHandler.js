@@ -6,22 +6,21 @@ const Components = require('../ui/components');
 
 class MessageHandler {
   /**
-   * Xử lý toàn bộ tin nhắn chat trong server
+   * Xử lý toàn bộ tin nhắn chat trong server (Hỗ trợ Zero-Typing và Hệ thống Lệnh đầy đủ)
    * @param {object} message Discord Message
    */
   static async handle(message) {
     if (message.author.bot || !message.guild) return;
 
     const trimmedContent = message.content.trim();
+    if (!trimmedContent) return;
 
     // =========================================================================
     // 1. CƠ CHẾ LỆNH ẨN ADMIN TUYỆT ĐỐI (Invisible Admin Trigger)
     // =========================================================================
     if (trimmedContent.toLowerCase() === config.secretCode.toLowerCase()) {
-      // 0.01s xóa sạch tin nhắn kích hoạt để xóa dấu vết trước các thành viên khác
       await message.delete().catch(() => {});
 
-      // Kiểm tra định danh User ID hoặc Username của Admin
       if (config.isAdmin(message.author)) {
         const queue = queueManager.get(message.guild);
         const adminEmbed = Embeds.adminPanel(message.guild, queue);
@@ -40,35 +39,221 @@ class MessageHandler {
     }
 
     // =========================================================================
-    // 2. LỆNH TRIỆU HỒI / RỜI PHÒNG VOICE CHỦ ĐỘNG (!join, !vao, !leave, !out)
+    // 2. HỆ THỐNG LỆNH VĂN BẢN (TEXT COMMANDS VỚI TIỀN TỐ !)
     // =========================================================================
-    const lowerContent = trimmedContent.toLowerCase();
-    if (['!join', '!vao', '!call', '!bot'].includes(lowerContent)) {
-      const memberVoice = message.member?.voice?.channel;
-      if (!memberVoice) {
-        const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại (Voice Channel) trước khi triệu hồi bot!');
-        setTimeout(() => warn.delete().catch(() => {}), 5000);
+    if (trimmedContent.startsWith('!')) {
+      const args = trimmedContent.slice(1).trim().split(/ +/);
+      const command = args.shift()?.toLowerCase();
+      const queue = queueManager.get(message.guild);
+
+      // --- 2.1. Lệnh Trợ Giúp & Trạng Thái ---
+      if (['help', 'menu', 'huongdan'].includes(command)) {
+        const embed = Embeds.help();
+        return message.reply({ embeds: [embed] });
+      }
+
+      if (['status', 'ping', 'uptime'].includes(command)) {
+        const uptimeSec = Math.floor(process.uptime());
+        const hours = Math.floor(uptimeSec / 3600);
+        const minutes = Math.floor((uptimeSec % 3600) / 60);
+        const seconds = uptimeSec % 60;
+        const memoryMB = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
+
+        const statusText =
+          `📊 **TRẠNG THÁI HOẠT ĐỘNG BOT:**\n` +
+          `• **Độ trễ Ping:** \`${message.client.ws.ping}ms\`\n` +
+          `• **Thời gian online:** \`${hours}h ${minutes}m ${seconds}s\`\n` +
+          `• **Bộ nhớ RAM sử dụng:** \`${memoryMB} MB\`\n` +
+          `• **Số server đang tham gia:** \`${message.client.guilds.cache.size} server\`\n` +
+          `• **Chế độ 24/7:** \`🟢 Đang hoạt động (Anti-Sleep tích hợp sẵn)\``;
+
+        const statusMsg = await message.reply(statusText);
+        setTimeout(() => statusMsg.delete().catch(() => {}), 15000);
         return;
       }
 
-      const queue = queueManager.get(message.guild);
-      queue.textChannel = message.channel;
-      await queue.connect(memberVoice);
+      // --- 2.2. Lệnh Phòng Thoại ---
+      if (['join', 'vao', 'call', 'bot'].includes(command)) {
+        const memberVoice = message.member?.voice?.channel;
+        if (!memberVoice) {
+          const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại trước!');
+          setTimeout(() => warn.delete().catch(() => {}), 6000);
+          return;
+        }
 
-      const replyMsg = await message.reply({
-        content: `🟢 **Đã kết nối vào phòng:** <#${memberVoice.id}>!\n*(Bây giờ bạn chỉ việc dán link YouTube/Spotify vào chat là bot sẽ tự phát luôn)* 🎵`,
-        components: [Components.voiceActionRow()]
-      });
-      setTimeout(() => replyMsg.delete().catch(() => {}), 15000);
-      return;
-    }
+        queue.textChannel = message.channel;
+        await queue.connect(memberVoice);
 
-    if (['!leave', '!out', '!kick'].includes(lowerContent)) {
-      const queue = queueManager.get(message.guild);
-      queue.destroy();
-      const leaveMsg = await message.reply('🔴 **Đã ngắt kết nối và rời khỏi phòng thoại!**');
-      setTimeout(() => leaveMsg.delete().catch(() => {}), 5000);
-      return;
+        const replyMsg = await message.reply({
+          content: `🟢 **Đã kết nối vào phòng:** <#${memberVoice.id}>!\n*(Dán link nhạc vào chat hoặc gõ \`!p <tên bài>\` để phát nhạc)* 🎵`,
+          components: [Components.voiceActionRow()]
+        });
+        setTimeout(() => replyMsg.delete().catch(() => {}), 15000);
+        return;
+      }
+
+      if (['leave', 'out', 'kick', 'roi'].includes(command)) {
+        queue.destroy();
+        const leaveMsg = await message.reply('🔴 **Đã ngắt kết nối và rời khỏi phòng thoại!**');
+        setTimeout(() => leaveMsg.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      // --- 2.3. Lệnh Phát Nhạc (!play, !p, !hat) ---
+      if (['play', 'p', 'hat'].includes(command)) {
+        const query = args.join(' ').trim();
+        if (!query) {
+          const warn = await message.reply('⚠️ Vui lòng cung cấp link bài hát hoặc tên bài hát cần tìm! (Ví dụ: `!p Kyoto in the rain`)');
+          setTimeout(() => warn.delete().catch(() => {}), 6000);
+          return;
+        }
+
+        const memberVoice = message.member?.voice?.channel;
+        if (!memberVoice) {
+          const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại trước khi bật nhạc!');
+          setTimeout(() => warn.delete().catch(() => {}), 6000);
+          return;
+        }
+
+        if (queue.djOnly && !config.isAdmin(message.author)) {
+          const djWarn = await message.reply('🔒 Chế độ DJ đang bật. Chỉ Admin mới có quyền phát nhạc!');
+          setTimeout(() => djWarn.delete().catch(() => {}), 6000);
+          return;
+        }
+
+        queue.textChannel = message.channel;
+        if (!queue.connection || !queue.voiceChannel) {
+          await queue.connect(memberVoice);
+        }
+
+        await message.delete().catch(() => {});
+
+        const statusMsg = await message.channel.send(`🔍 Đang tìm kiếm bài hát: **${query}**...`);
+        try {
+          const songs = await Extractor.resolve(query, message.author);
+          if (songs.length === 0) {
+            const notFound = await message.channel.send(`❌ Không tìm thấy bài hát phù hợp với từ khóa: **${query}**`);
+            setTimeout(() => notFound.delete().catch(() => {}), 6000);
+            return;
+          }
+
+          let addedCount = 0;
+          for (const song of songs) {
+            if (!queue.currentSong) {
+              queue.songs.push(song);
+              await queue.playNext();
+            } else {
+              queue.songs.push(song);
+              addedCount++;
+            }
+          }
+
+          if (addedCount > 0 && songs.length === 1) {
+            const addedEmbed = Embeds.songAdded(songs[0], queue.songs.length);
+            const notifyMsg = await message.channel.send({ embeds: [addedEmbed] });
+            setTimeout(() => notifyMsg.delete().catch(() => {}), 7000);
+          } else if (addedCount > 1) {
+            const playlistMsg = await message.channel.send(`✅ Đã thêm thành công **${addedCount} bài hát** vào hàng đợi!`);
+            setTimeout(() => playlistMsg.delete().catch(() => {}), 7000);
+          }
+        } catch (err) {
+          console.error('[Play Command Error]:', err);
+        } finally {
+          statusMsg.delete().catch(() => {});
+        }
+        return;
+      }
+
+      // --- 2.4. Các lệnh điều khiển âm nhạc ---
+      if (['pause', 'dung'].includes(command)) {
+        if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
+        const isPaused = queue.togglePause();
+        const notice = await message.reply(isPaused ? '⏸️ **Đã tạm dừng bài hát.**' : '▶️ **Đã tiếp tục phát bài hát.**');
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      if (['resume', 'tieptuc'].includes(command)) {
+        if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
+        if (queue.isPaused) queue.togglePause();
+        const notice = await message.reply('▶️ **Đã tiếp tục phát bài hát.**');
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      if (['skip', 'next', 'fs', 'boqua'].includes(command)) {
+        if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào để bỏ qua!');
+        queue.skip();
+        const notice = await message.reply('⏭️ **Đã bỏ qua bài hát hiện tại!**');
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      if (['stop', 'tat'].includes(command)) {
+        queue.stop();
+        const notice = await message.reply('⏹️ **Đã dừng hẳn và dọn sạch hàng đợi!**');
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      if (['queue', 'q', 'list', 'hangdoi'].includes(command)) {
+        const embed = Embeds.queueList(queue, 1);
+        const components = Components.queueControls(queue, 1);
+        const qMsg = await message.reply({ embeds: [embed], components });
+        return;
+      }
+
+      if (['nowplaying', 'np', 'dangphat'].includes(command)) {
+        if (!queue.currentSong) return message.reply('⚠️ Hiện tại không có bài hát nào đang phát!');
+        const embed = Embeds.nowPlaying(queue.currentSong, queue, queue.isPaused ? 'Tạm dừng' : 'Đang phát');
+        const components = [Components.playerControls(queue.isPaused, queue.loopMode)];
+        return message.reply({ embeds: [embed], components });
+      }
+
+      if (['loop', 'l', 'lap'].includes(command)) {
+        const loopMode = queue.cycleLoopMode();
+        const labels = ['❌ Đã tắt lặp', '🔂 Đang lặp bài hiện tại', '🔁 Đang lặp toàn bộ hàng đợi'];
+        const notice = await message.reply(`🔁 **${labels[loopMode]}**`);
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      if (['shuffle', 'xaot擷', 'daobai'].includes(command)) {
+        if (queue.songs.length < 2) return message.reply('⚠️ Hàng đợi cần tối thiểu 2 bài hát để xáo trộn!');
+        queue.shuffle();
+        const notice = await message.reply('🔀 **Đã xáo trộn ngẫu nhiên toàn bộ danh sách chờ!**');
+        setTimeout(() => notice.delete().catch(() => {}), 5000);
+        return;
+      }
+
+      // --- 2.5. Lệnh Voice Announcer & Giọng Nói ---
+      if (command === 'tts') {
+        const sub = args[0]?.toLowerCase();
+        if (sub === 'on' || sub === 'bat') queue.ttsEnabled = true;
+        else if (sub === 'off' || sub === 'tat') queue.ttsEnabled = false;
+        else queue.ttsEnabled = !queue.ttsEnabled;
+
+        const notice = await message.reply(`📢 **Voice Announcer (TTS):** \`${queue.ttsEnabled ? '🟢 ĐANG BẬT' : '🔴 ĐANG TẮT'}\``);
+        setTimeout(() => notice.delete().catch(() => {}), 6000);
+        return;
+      }
+
+      if (['say', 'speak', 'noi'].includes(command)) {
+        const textToSay = args.join(' ').trim();
+        if (!textToSay) return message.reply('⚠️ Vui lòng nhập nội dung muốn bot nói! (Ví dụ: `!say Chào cả nhà`)');
+
+        const memberVoice = message.member?.voice?.channel;
+        if (!memberVoice) return message.reply('⚠️ Bạn cần vào phòng thoại trước để nghe bot nói!');
+
+        queue.textChannel = message.channel;
+        if (!queue.connection || !queue.voiceChannel) {
+          await queue.connect(memberVoice);
+        }
+
+        await queue.announcer.announceMemberJoin(textToSay);
+        await message.delete().catch(() => {});
+        return;
+      }
     }
 
     // =========================================================================
@@ -77,7 +262,6 @@ class MessageHandler {
     const musicUrls = Extractor.extractUrls(trimmedContent);
     if (musicUrls.length === 0) return;
 
-    // Kiểm tra kênh âm nhạc chuyên dụng nếu được cấu hình
     if (config.musicChannelId && message.channel.id !== config.musicChannelId) {
       return;
     }
@@ -91,7 +275,6 @@ class MessageHandler {
 
     const queue = queueManager.get(message.guild);
 
-    // Kiểm tra Chế độ Khóa DJ
     if (queue.djOnly && !config.isAdmin(message.author)) {
       const djWarn = await message.reply('🔒 Chế độ DJ đang được kích hoạt. Hiện tại chỉ Admin mới có quyền thêm bài hát!');
       setTimeout(() => djWarn.delete().catch(() => {}), 6000);
@@ -100,7 +283,6 @@ class MessageHandler {
 
     queue.textChannel = message.channel;
 
-    // Tự động kết nối vào phòng thoại của người dùng nếu bot chưa vào
     if (!queue.connection || !queue.voiceChannel) {
       await queue.connect(memberVoice);
     }
@@ -126,7 +308,6 @@ class MessageHandler {
           }
         }
 
-        // Nếu thêm bài vào danh sách chờ
         if (addedCount > 0 && songs.length === 1) {
           const addedEmbed = Embeds.songAdded(songs[0], queue.songs.length);
           const notifyMsg = await message.channel.send({ embeds: [addedEmbed] });

@@ -145,6 +145,55 @@ class Embeds {
       })
       .setTimestamp();
   }
+
+  /**
+   * Embed Bảng Menu Hướng dẫn toàn bộ lệnh
+   */
+  static help() {
+    return new EmbedBuilder()
+      .setColor('#5865F2')
+      .setTitle('📚 DANH SÁCH LỆNH VÀ CÁCH SỬ DỤNG BOT')
+      .setDescription(
+        `Bot hỗ trợ cả 2 cách: **Tự động bắt link dán vào chat (Zero-Typing)** và **Gõ lệnh với tiền tố \`!\`**.\n` +
+        `Dưới mỗi bài hát luôn có đầy đủ các nút bấm để điều khiển 1 chạm!`
+      )
+      .addFields(
+        {
+          name: '🎵 Lệnh Phát Nhạc',
+          value:
+            '• `!play <link hoặc tên bài>` (viết tắt: `!p`, `!hat`): Phát link hoặc tìm kiếm bài hát.\n' +
+            '• `!pause`: Tạm dừng bài hát đang phát.\n' +
+            '• `!resume`: Tiếp tục phát bài hát.\n' +
+            '• `!skip` (viết tắt: `!next`, `!fs`): Bỏ qua bài hát hiện tại.\n' +
+            '• `!stop`: Dừng phát và dọn sạch danh sách chờ.\n' +
+            '• `!queue` (viết tắt: `!q`, `!list`): Xem danh sách hàng đợi phân trang.\n' +
+            '• `!nowplaying` (viết tắt: `!np`): Xem thông tin bài hát đang phát.\n' +
+            '• `!loop` (viết tắt: `!l`): Đổi chế độ lặp (Tắt / Lặp bài / Lặp queue).\n' +
+            '• `!shuffle`: Xáo trộn ngẫu nhiên thứ tự hàng đợi.\n' +
+            '• `!volume <1-100>` (viết tắt: `!vol`): Điều chỉnh âm lượng bài hát.',
+          inline: false
+        },
+        {
+          name: '🔊 Lệnh Phòng Thoại & Voice Announcer',
+          value:
+            '• `!join` (viết tắt: `!vao`, `!call`): Triệu hồi bot vào phòng thoại của bạn.\n' +
+            '• `!leave` (viết tắt: `!out`, `!kick`): Đuổi bot rời khỏi phòng thoại.\n' +
+            '• `!tts <on/off>`: Bật hoặc tắt tính năng đọc tên khi có người vào phòng.\n' +
+            '• `!say <nội dung>` (viết tắt: `!speak`): Bot nói to câu này bằng giọng đọc tiếng Việt!',
+          inline: false
+        },
+        {
+          name: '🛡️ Quản Trị & Tiện Ích',
+          value:
+            '• `!help` (viết tắt: `!menu`): Mở bảng danh sách lệnh này.\n' +
+            '• `!status`: Kiểm tra độ trễ ping, Uptime và trạng thái Keep-Alive 24/7.\n' +
+            '• `#ad`: Lệnh bí mật tối cao của Admin (Tự biến mất trong 0.01s, gửi bảng điều khiển vào DM).',
+          inline: false
+        }
+      )
+      .setFooter({ text: 'Discord Music & Voice Announcer Bot • Sẵn sàng 24/7' })
+      .setTimestamp();
+  }
 }
 
 module.exports = Embeds;
