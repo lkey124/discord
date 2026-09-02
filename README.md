@@ -1,3 +1,12 @@
+---
+title: Discord Music Bot
+emoji: 🎵
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+---
+
 # Discord Music & Vietnamese Voice Announcer Bot 🎵🇻🇳
 
 Bot Discord phát nhạc chất lượng cao với triết lý **Zero-Typing** (tự bắt link dán vào chat), hệ thống nút bấm 1 chạm, trọn bộ lệnh tiếng Việt, Voice Announcer đọc tên khi vào phòng thoại và tích hợp cơ chế tự động giữ thức **24/7 trên Render** không cần app ngoài.
