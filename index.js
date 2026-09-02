@@ -82,6 +82,10 @@ client.once(Events.ClientReady, () => {
     }],
     status: 'online'
   });
+
+  // Tự động làm nóng bộ giải mã yt-dlp ngay khi khởi động
+  const Extractor = require('./src/music/Extractor');
+  Extractor.warmUp();
 });
 
 // Lắng nghe tin nhắn chat (Phát hiện link nhạc & kích hoạt Admin ẩn)

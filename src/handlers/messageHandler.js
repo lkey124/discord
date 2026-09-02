@@ -296,6 +296,42 @@ class MessageHandler {
         await message.delete().catch(() => {});
         return;
       }
+
+      // --- 2.6. Lệnh Kiểm tra hệ thống (Diagnostic) ---
+      if (['kiemtra', 'check', 'diag', 'testbot'].includes(command)) {
+        const testMsg = await message.reply('🔍 Đang kiểm tra hệ thống và bộ giải mã âm thanh trên máy chủ...');
+        const t0 = Date.now();
+        try {
+          const binPath = await Extractor.getYtDlpPath();
+          const { execFile } = require('child_process');
+          const version = await new Promise((res, rej) => {
+            if (!binPath) return rej(new Error('Không tìm thấy file binary yt-dlp'));
+            execFile(binPath, ['--version'], (err, stdout) => {
+              if (err) rej(err);
+              else res(stdout.trim());
+            });
+          });
+
+          // Thử bóc tách thử nghiệm video
+          const testStreamUrl = await new Promise((res, rej) => {
+            execFile(binPath, [
+              '-g', '-f', 'ba/b',
+              '--extractor-args', 'youtube:player_client=android',
+              '--no-warnings', '--no-check-certificates', '--no-playlist',
+              'https://youtube.com/watch?v=Fe9mf1e88Uk'
+            ], (err, stdout) => {
+              if (err) rej(err);
+              else res(stdout.trim());
+            });
+          });
+
+          const totalMs = Date.now() - t0;
+          await testMsg.edit(`✅ **Hệ thống hoạt động hoàn hảo:**\n- 🖥️ **Hệ điều hành**: \`${process.platform}\`\n- 📁 **Binary Path**: \`${binPath}\`\n- ⚙️ **yt-dlp**: \`v${version}\`\n- ⚡ **Tốc độ bóc tách**: \`${totalMs}ms\`\n- 🎵 **Trạng thái luồng**: \`Bypass thành công, sẵn sàng 100%\``);
+        } catch (diagErr) {
+          await testMsg.edit(`❌ **Kiểm tra phát hiện lỗi:**\n\`${diagErr.message || diagErr}\``);
+        }
+        return;
+      }
     }
 
     // =========================================================================

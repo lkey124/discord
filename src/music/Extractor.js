@@ -164,14 +164,20 @@ class Extractor {
    */
   static async getYtDlpPath() {
     const isWin = process.platform === 'win32';
-    const binDir = path.resolve(process.cwd(), 'bin');
-    const binFile = path.join(binDir, isWin ? 'yt-dlp.exe' : 'yt-dlp');
+    const binName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+    const candidates = [
+      path.resolve(__dirname, '../../bin', binName),
+      path.resolve(process.cwd(), 'bin', binName),
+      path.join(process.cwd(), binName)
+    ];
 
-    if (fs.existsSync(binFile)) {
-      if (!isWin) {
-        try { fs.chmodSync(binFile, '755'); } catch (e) {}
+    for (const binFile of candidates) {
+      if (fs.existsSync(binFile)) {
+        if (!isWin) {
+          try { fs.chmodSync(binFile, '755'); } catch (e) {}
+        }
+        return binFile;
       }
-      return binFile;
     }
 
     // Kiểm tra xem hệ thống đã cài yt-dlp sẵn trong PATH chưa
@@ -183,17 +189,35 @@ class Extractor {
       }
     } catch (e) {}
 
+    const defaultBin = candidates[0];
     try {
+      const binDir = path.dirname(defaultBin);
       if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
       console.log('⬇️ Đang tải bộ giải mã stream yt-dlp...');
-      await YTDlpWrap.downloadFromGithub(binFile);
-      if (!isWin) fs.chmodSync(binFile, '755');
+      await YTDlpWrap.downloadFromGithub(defaultBin);
+      if (!isWin) fs.chmodSync(defaultBin, '755');
       console.log('✅ yt-dlp đã sẵn sàng!');
-      return binFile;
+      return defaultBin;
     } catch (e) {
       console.warn('⚠️ Không thể tải yt-dlp:', e.message);
       return null;
     }
+  }
+
+  /**
+   * Làm nóng bộ giải mã ngay khi bot khởi động (giúp giải nén sẵn vào RAM)
+   */
+  static async warmUp() {
+    try {
+      const binPath = await this.getYtDlpPath();
+      if (binPath) {
+        const { execFile } = require('child_process');
+        execFile(binPath, ['--version'], (err, stdout) => {
+          if (err) console.warn('[Warmup Warning]:', err.message);
+          else console.log('🔥 [Warmup]: Bộ giải mã âm thanh yt-dlp đã làm nóng sẵn sàng! Phiên bản:', stdout.trim());
+        });
+      }
+    } catch (e) {}
   }
 
   static streamCache = new Map();
@@ -252,7 +276,7 @@ class Extractor {
         ]);
 
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 12s)')), 12000)
+          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 30s)')), 30000)
         );
 
         const directUrl = (await Promise.race([extractPromise, timeoutPromise])).trim();
@@ -267,10 +291,14 @@ class Extractor {
         }
       }
     } catch (ytDlpErr) {
-      console.warn('[yt-dlp direct url error]:', ytDlpErr.message, 'Đang thử phương thức phụ...');
+      console.warn('[yt-dlp direct url error]:', ytDlpErr.message);
+      // Nếu là link YouTube, không rơi xuống play-dl vì Cloud IP sẽ bị chặn
+      if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
+        throw ytDlpErr;
+      }
     }
 
-    // 3. Dự phòng bằng play-dl
+    // 3. Dự phòng cho Spotify/SoundCloud bằng play-dl
     return await play.stream(finalUrl, { quality: 2 });
   }
 }
