@@ -338,7 +338,11 @@ class MessageHandler {
       let addedCount = 0;
       for (const url of musicUrls) {
         const songs = await Extractor.resolve(url, message.author);
-        if (songs.length === 0) continue;
+        if (songs.length === 0) {
+          const errNotice = await message.channel.send(`❌ Không thể bóc tách bài hát từ liên kết này! Bạn hãy thử gõ lệnh: \`!phat <tên bài>\` nhé!`);
+          setTimeout(() => errNotice.delete().catch(() => {}), 10000);
+          continue;
+        }
 
         let addedCount = 0;
         for (const song of songs) {
@@ -368,6 +372,8 @@ class MessageHandler {
       }
     } catch (err) {
       console.error('[Music Process Error]:', err);
+      const errAlert = await message.channel.send(`❌ Gặp sự cố khi xử lý bài hát: \`${err.message || err}\``);
+      setTimeout(() => errAlert.delete().catch(() => {}), 10000);
     } finally {
       statusMsg.delete().catch(() => {});
     }

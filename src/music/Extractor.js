@@ -164,7 +164,30 @@ class Extractor {
 
       return [];
     } catch (err) {
-      console.error(`[Extractor Error] Không thể bóc tách URL ${url}:`, err.message);
+      console.warn(`[play-dl Error]: ${err.message}. Đang thử cứu nguy bằng yt-dlp...`);
+      // Cứu nguy bằng yt-dlp trực tiếp (Bypass hoàn toàn chặn IP Datacenter Cloud)
+      try {
+        const binPath = await this.getYtDlpPath();
+        if (binPath) {
+          const ytDlp = new YTDlpWrap(binPath);
+          const raw = await ytDlp.execPromise(['--dump-json', '--no-playlist', url]);
+          const meta = JSON.parse(raw);
+          return [
+            new Song({
+              title: meta.title || 'YouTube Track',
+              url: meta.webpage_url || url,
+              duration: meta.duration_string || Song.formatDuration(meta.duration || 0),
+              durationSec: meta.duration || 0,
+              thumbnail: meta.thumbnail || '',
+              author: meta.uploader || meta.channel || 'YouTube',
+              requester,
+              source: 'youtube'
+            })
+          ];
+        }
+      } catch (ytErr) {
+        console.error('[yt-dlp fallback error]:', ytErr.message);
+      }
       return [];
     }
   }
