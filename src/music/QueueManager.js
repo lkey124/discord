@@ -11,6 +11,7 @@ const {
   createAudioResource,
   AudioPlayerStatus,
   VoiceConnectionStatus,
+  NoSubscriberBehavior,
   entersState
 } = require('@discordjs/voice');
 const Extractor = require('./Extractor');
@@ -25,7 +26,12 @@ class GuildQueue {
     this.voiceChannel = null;
     this.textChannel = null;
     this.connection = null;
-    this.player = createAudioPlayer();
+    this.player = createAudioPlayer({
+      behaviors: {
+        noSubscriber: NoSubscriberBehavior.Play,
+        maxMissedFrames: 50
+      }
+    });
     this.songs = [];
     this.currentSong = null;
     this.loopMode = 0; // 0 = off, 1 = song, 2 = queue

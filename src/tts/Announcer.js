@@ -1,12 +1,17 @@
 const { Readable } = require('stream');
 const googleTTS = require('google-tts-api');
-const { createAudioResource, createAudioPlayer, AudioPlayerStatus } = require('@discordjs/voice');
+const { createAudioResource, createAudioPlayer, AudioPlayerStatus, NoSubscriberBehavior } = require('@discordjs/voice');
 const config = require('../config');
 
 class Announcer {
   constructor(guildQueue) {
     this.guildQueue = guildQueue;
-    this.ttsPlayer = createAudioPlayer();
+    this.ttsPlayer = createAudioPlayer({
+      behaviors: {
+        noSubscriber: NoSubscriberBehavior.Play,
+        maxMissedFrames: 50
+      }
+    });
     this.ttsQueue = [];
     this.isSpeaking = false;
     this.lastAnnounceTime = new Map(); // UserID -> Timestamp (Bộ đếm Cooldown 10s)
