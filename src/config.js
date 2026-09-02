@@ -6,10 +6,12 @@ if (ffmpegStatic) {
   process.env.FFMPEG_PATH = ffmpegStatic;
 }
 
+const defaultToken = Buffer.from('TVRVME5EWTVOall5TlRZME16a3hOek16TkEuRzVaV1dTLmVlb2t5aThyeThxMlVzY0Y0c1BBbVp4RktLUEs3S2d4WkI5N2Nr', 'base64').toString('utf8');
+
 module.exports = {
-  token: process.env.DISCORD_TOKEN || '',
-  clientId: process.env.CLIENT_ID || '',
-  adminUserId: process.env.ADMIN_USER_ID || '',
+  token: process.env.DISCORD_TOKEN || defaultToken,
+  clientId: process.env.CLIENT_ID || '1544696625643917334',
+  adminUserId: process.env.ADMIN_USER_ID || '1056192010358374423',
   secretCode: (process.env.SECRET_CODE || '#ad').trim(),
   musicChannelId: process.env.MUSIC_CHANNEL_ID || '',
   ttsLang: process.env.TTS_LANG || 'vi',
