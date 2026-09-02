@@ -220,6 +220,38 @@ class Extractor {
     } catch (e) {}
   }
 
+  static getCookiePath() {
+    // 1. Nếu có biến môi trường YOUTUBE_COOKIES, tự ghi ra file cookies.txt
+    if (process.env.YOUTUBE_COOKIES) {
+      try {
+        const targetPath = path.resolve(process.cwd(), 'cookies.txt');
+        if (!fs.existsSync(targetPath)) {
+          let cookieData = process.env.YOUTUBE_COOKIES.trim();
+          if (!cookieData.includes('\t') && !cookieData.includes('\n')) {
+            try { cookieData = Buffer.from(cookieData, 'base64').toString('utf8'); } catch (e) {}
+          }
+          fs.writeFileSync(targetPath, cookieData);
+          return targetPath;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Tìm file cookies.txt hoặc cookies.json trong các thư mục dự án
+    const cookieCandidates = [
+      path.resolve(process.cwd(), 'cookies.txt'),
+      path.resolve(__dirname, '../../cookies.txt'),
+      path.resolve(process.cwd(), 'cookies.json'),
+      path.resolve(__dirname, '../../cookies.json')
+    ];
+
+    for (const cPath of cookieCandidates) {
+      if (fs.existsSync(cPath) && fs.statSync(cPath).size > 10) {
+        return cPath;
+      }
+    }
+    return null;
+  }
+
   static streamCache = new Map();
 
   /**
@@ -234,7 +266,7 @@ class Extractor {
   }
 
   /**
-   * Tạo stream audio không quảng cáo từ URL bài hát (Tốc độ cao với Cache & Android Client)
+   * Tạo stream audio không quảng cáo từ URL bài hát (Hỗ trợ Cookie FIA & Android Client)
    * @param {Song} song
    * @returns {Promise<{ stream: any, type: string }>}
    */
@@ -259,21 +291,32 @@ class Extractor {
       return { stream: cached.directUrl, type: 'arbitrary' };
     }
 
-    // 2. Ưu tiên sử dụng yt-dlp Android client tốc độ cao (Bypass kiểm tra bot & siêu nhanh)
+    // 2. Ưu tiên sử dụng yt-dlp với Cookie (nếu có) hoặc bộ đôi Android Music + Smart TV
     try {
       const binPath = await this.getYtDlpPath();
       if (binPath) {
         const ytDlp = new YTDlpWrap(binPath);
-        const extractPromise = ytDlp.execPromise([
+        const cookiePath = this.getCookiePath();
+
+        const args = [
           '-g',
           '-f', 'ba/b',
-          '--extractor-args', 'youtube:player_client=android_music,tv_embedded',
+          '--geo-bypass',
           '--no-warnings',
           '--no-check-certificates',
           '--prefer-free-formats',
-          '--no-playlist',
-          finalUrl
-        ]);
+          '--no-playlist'
+        ];
+
+        if (cookiePath) {
+          args.push('--cookies', cookiePath);
+        } else {
+          args.push('--extractor-args', 'youtube:player_client=android_music,tv_embedded');
+        }
+
+        args.push(finalUrl);
+
+        const extractPromise = ytDlp.execPromise(args);
 
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 30s)')), 30000)

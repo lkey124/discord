@@ -322,21 +322,29 @@ class MessageHandler {
             });
           });
 
+          const cookiePath = Extractor.getCookiePath();
+          const testArgs = [
+            '-g', '-f', 'ba/b',
+            '--geo-bypass',
+            '--no-warnings', '--no-check-certificates', '--no-playlist'
+          ];
+          if (cookiePath) {
+            testArgs.push('--cookies', cookiePath);
+          } else {
+            testArgs.push('--extractor-args', 'youtube:player_client=android_music,tv_embedded');
+          }
+          testArgs.push('https://youtube.com/watch?v=Fe9mf1e88Uk');
+
           // Thử bóc tách thử nghiệm video
           const testStreamUrl = await new Promise((res, rej) => {
-            execFile(binPath, [
-              '-g', '-f', 'ba/b',
-              '--extractor-args', 'youtube:player_client=android_music,tv_embedded',
-              '--no-warnings', '--no-check-certificates', '--no-playlist',
-              'https://youtube.com/watch?v=Fe9mf1e88Uk'
-            ], { timeout: 20000 }, (err, stdout) => {
+            execFile(binPath, testArgs, { timeout: 20000 }, (err, stdout) => {
               if (err) rej(err);
               else res(stdout.trim());
             });
           });
 
           const totalMs = Date.now() - t0;
-          await testMsg.edit(`✅ **Hệ thống hoạt động hoàn hảo:**\n- 🖥️ **Hệ điều hành**: \`${process.platform}\`\n- 📁 **Binary Path**: \`${binPath}\`\n- ⚙️ **yt-dlp**: \`v${version}\`\n- ⚡ **Tốc độ bóc tách**: \`${totalMs}ms\`\n- 🎵 **Trạng thái luồng**: \`Bypass thành công, sẵn sàng 100%\``);
+          await testMsg.edit(`✅ **Hệ thống hoạt động hoàn hảo:**\n- 🖥️ **Hệ điều hành**: \`${process.platform}\`\n- 🍪 **Cookie xác thực**: \`${cookiePath ? 'Đã kích hoạt' : 'Không có (Dùng Android Music/TV)'}\`\n- ⚙️ **yt-dlp**: \`v${version}\`\n- ⚡ **Tốc độ bóc tách**: \`${totalMs}ms\`\n- 🎵 **Trạng thái luồng**: \`Bypass thành công, sẵn sàng 100%\``);
         } catch (diagErr) {
           await testMsg.edit(`❌ **Kiểm tra phát hiện lỗi:**\n\`${diagErr.message || diagErr}\``);
         }
