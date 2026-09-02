@@ -1,4 +1,7 @@
+const path = require('path');
+const fs = require('fs');
 const play = require('play-dl');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 const Song = require('./Song');
 
 class Extractor {
@@ -161,7 +164,32 @@ class Extractor {
   }
 
   /**
-   * Tạo stream audio không quảng cáo từ URL bài hát
+   * Lấy đường dẫn binary yt-dlp (tự động tải nếu chưa có)
+   */
+  static async getYtDlpPath() {
+    const isWin = process.platform === 'win32';
+    const binDir = path.resolve(process.cwd(), 'bin');
+    const binFile = path.join(binDir, isWin ? 'yt-dlp.exe' : 'yt-dlp');
+
+    if (fs.existsSync(binFile)) {
+      return binFile;
+    }
+
+    try {
+      if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+      console.log('⬇️ Đang tải bộ giải mã stream yt-dlp...');
+      await YTDlpWrap.downloadFromGithub(binFile);
+      if (!isWin) fs.chmodSync(binFile, '755');
+      console.log('✅ yt-dlp đã sẵn sàng!');
+      return binFile;
+    } catch (e) {
+      console.warn('⚠️ Không thể tải yt-dlp:', e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Tạo stream audio không quảng cáo từ URL bài hát (Hỗ trợ yt-dlp chống chặn định dạng)
    * @param {Song} song
    * @returns {Promise<{ stream: any, type: string }>}
    */
@@ -180,6 +208,25 @@ class Extractor {
       }
     }
 
+    // 1. Ưu tiên sử dụng yt-dlp để bypass cơ chế chặn định dạng âm thanh của YouTube
+    try {
+      const binPath = await this.getYtDlpPath();
+      if (binPath) {
+        const ytDlp = new YTDlpWrap(binPath);
+        const stream = ytDlp.execStream([
+          finalUrl,
+          '-f', 'bestaudio',
+          '-o', '-',
+          '--no-playlist',
+          '--buffer-size', '16K'
+        ]);
+        return { stream, type: 'arbitrary' };
+      }
+    } catch (ytDlpErr) {
+      console.warn('[yt-dlp stream error]:', ytDlpErr.message, 'Đang thử phương thức phụ...');
+    }
+
+    // 2. Dự phòng bằng play-dl
     return await play.stream(finalUrl, { quality: 2 });
   }
 }
