@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: discord-music-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: ADMIN_USER_ID
+        sync: false
+      - key: SECRET_CODE
+        value: "#ad"
+      - key: FISH_AUDIO_API_KEY
+        sync: false
+      - key: FISH_AUDIO_VOICE_ID
+        value: "5aaab6b5458b4591b87a33de8a3e4874"
+      - key: TTS_LANG
+        value: "vi"
+      - key: TTS_COOLDOWN
+        value: "10"
