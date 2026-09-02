@@ -324,27 +324,34 @@ class MessageHandler {
 
           const cookiePath = Extractor.getCookiePath();
           const testArgs = [
-            '-g', '-f', 'ba/b',
+            '--dump-single-json',
+            '--no-playlist',
+            '--skip-download',
+            '--no-warnings',
+            '--no-cache-dir',
             '--geo-bypass',
-            '--no-warnings', '--no-check-certificates', '--no-playlist'
+            '--no-check-certificates',
+            '--js-runtimes', 'node',
+            '-f', 'bestaudio/best',
+            '-S', 'proto:https'
           ];
           if (cookiePath) {
             testArgs.push('--cookies', cookiePath);
-          } else {
-            testArgs.push('--extractor-args', 'youtube:player_client=android_music,tv_embedded');
           }
           testArgs.push('https://youtube.com/watch?v=Fe9mf1e88Uk');
 
-          // Thử bóc tách thử nghiệm video
-          const testStreamUrl = await new Promise((res, rej) => {
-            execFile(binPath, testArgs, { timeout: 20000 }, (err, stdout) => {
+          // Thử bóc tách thử nghiệm video bằng kiến trúc Muse
+          const rawOutput = await new Promise((res, rej) => {
+            execFile(binPath, testArgs, { timeout: 30000 }, (err, stdout) => {
               if (err) rej(err);
               else res(stdout.trim());
             });
           });
 
+          const resJson = JSON.parse(rawOutput);
+          const dl = resJson.requested_downloads?.[0] || resJson;
           const totalMs = Date.now() - t0;
-          await testMsg.edit(`✅ **Hệ thống hoạt động hoàn hảo:**\n- 🖥️ **Hệ điều hành**: \`${process.platform}\`\n- 🍪 **Cookie xác thực**: \`${cookiePath ? 'Đã kích hoạt' : 'Không có (Dùng Android Music/TV)'}\`\n- ⚙️ **yt-dlp**: \`v${version}\`\n- ⚡ **Tốc độ bóc tách**: \`${totalMs}ms\`\n- 🎵 **Trạng thái luồng**: \`Bypass thành công, sẵn sàng 100%\``);
+          await testMsg.edit(`✅ **Hệ thống hoạt động hoàn hảo (Chuẩn kiến trúc Muse):**\n- 🖥️ **Hệ điều hành**: \`${process.platform}\`\n- ⚡ **Bộ giải JS Challenge**: \`Node.js Engine\`\n- 🍪 **Cookie xác thực**: \`${cookiePath ? 'Đã kích hoạt' : 'Tự động vượt bot'}\`\n- ⚙️ **yt-dlp**: \`v${version}\`\n- ⏱️ **Tốc độ bóc tách**: \`${totalMs}ms\`\n- 🎵 **Bài hát test**: \`${resJson.title || 'OK'}\`\n- 🚀 **Trạng thái**: \`Bypass thành công 100%, sẵn sàng phát!\``);
         } catch (diagErr) {
           await testMsg.edit(`❌ **Kiểm tra phát hiện lỗi:**\n\`${diagErr.message || diagErr}\``);
         }

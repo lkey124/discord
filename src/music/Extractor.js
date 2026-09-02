@@ -299,19 +299,20 @@ class Extractor {
         const cookiePath = this.getCookiePath();
 
         const args = [
-          '-g',
-          '-f', 'ba/b',
-          '--geo-bypass',
+          '--dump-single-json',
+          '--no-playlist',
+          '--skip-download',
           '--no-warnings',
+          '--no-cache-dir',
+          '--geo-bypass',
           '--no-check-certificates',
-          '--prefer-free-formats',
-          '--no-playlist'
+          '--js-runtimes', 'node',
+          '-f', 'bestaudio/best',
+          '-S', 'proto:https'
         ];
 
         if (cookiePath) {
           args.push('--cookies', cookiePath);
-        } else {
-          args.push('--extractor-args', 'youtube:player_client=android_music,tv_embedded');
         }
 
         args.push(finalUrl);
@@ -319,10 +320,13 @@ class Extractor {
         const extractPromise = ytDlp.execPromise(args);
 
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 30s)')), 30000)
+          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 35s)')), 35000)
         );
 
-        const directUrl = (await Promise.race([extractPromise, timeoutPromise])).trim();
+        const rawJson = await Promise.race([extractPromise, timeoutPromise]);
+        const response = JSON.parse(rawJson);
+        const download = response.requested_downloads?.[0] || response;
+        const directUrl = download.url;
 
         if (directUrl && directUrl.startsWith('http')) {
           // Lưu vào Cache 1 tiếng
