@@ -27,6 +27,7 @@ class GuildQueue {
     this.isPaused = false;
     this.pausedByTTS = false;
     this.playerMessage = null;
+    this.currentAudioProcess = null;
     this.announcer = new Announcer(this);
 
     // Xử lý sự kiện Player nhạc
@@ -106,7 +107,16 @@ class GuildQueue {
     if (!this.currentSong) return;
 
     try {
+      if (this.currentAudioProcess) {
+        try { this.currentAudioProcess.kill(); } catch (e) {}
+        this.currentAudioProcess = null;
+      }
+
       const audioData = await Extractor.getAudioStream(this.currentSong);
+      if (audioData.process) {
+        this.currentAudioProcess = audioData.process;
+      }
+
       const resource = createAudioResource(audioData.stream, {
         inputType: audioData.type,
         inlineVolume: true
@@ -138,6 +148,10 @@ class GuildQueue {
    * Xử lý khi bài hát kết thúc
    */
   handleSongEnd() {
+    if (this.currentAudioProcess) {
+      try { this.currentAudioProcess.kill(); } catch (e) {}
+      this.currentAudioProcess = null;
+    }
     if (this.pausedByTTS) return;
     this.playNext();
   }
@@ -199,6 +213,10 @@ class GuildQueue {
     this.songs = [];
     this.currentSong = null;
     this.loopMode = 0;
+    if (this.currentAudioProcess) {
+      try { this.currentAudioProcess.kill(); } catch (e) {}
+      this.currentAudioProcess = null;
+    }
     this.player.stop(true);
     if (this.playerMessage) {
       this.playerMessage.delete().catch(() => {});

@@ -1,3 +1,5 @@
+const { spawn } = require('child_process');
+const { StreamType } = require('@discordjs/voice');
 const play = require('play-dl');
 const yts = require('yt-search');
 const YTDlpWrap = require('yt-dlp-wrap').default;
@@ -291,24 +293,22 @@ class Extractor {
       return { stream: cached.directUrl, type: 'arbitrary' };
     }
 
-    // 2. Ưu tiên sử dụng yt-dlp với Cookie (nếu có) hoặc bộ đôi Android Music + Smart TV
+    // 2. Ưu tiên sử dụng yt-dlp Pipe trực tiếp qua stdout (Bắn thẳng luồng Opus/PCM vào Discord)
     try {
       const binPath = await this.getYtDlpPath();
       if (binPath) {
-        const ytDlp = new YTDlpWrap(binPath);
         const cookiePath = this.getCookiePath();
 
         const args = [
-          '--dump-single-json',
           '--no-playlist',
-          '--skip-download',
           '--no-warnings',
           '--no-cache-dir',
           '--geo-bypass',
           '--no-check-certificates',
           '--js-runtimes', 'node',
-          '-f', 'bestaudio/best',
-          '-S', 'proto:https'
+          '-f', 'ba/b',
+          '-S', 'proto:https',
+          '-o', '-'
         ];
 
         if (cookiePath) {
@@ -317,28 +317,16 @@ class Extractor {
 
         args.push(finalUrl);
 
-        const extractPromise = ytDlp.execPromise(args);
+        const child = spawn(binPath, args, { stdio: ['ignore', 'pipe', 'ignore'] });
 
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Bóc tách stream quá thời gian (Timeout 35s)')), 35000)
-        );
+        child.on('error', (err) => {
+          console.warn('[yt-dlp child error]:', err.message);
+        });
 
-        const rawJson = await Promise.race([extractPromise, timeoutPromise]);
-        const response = JSON.parse(rawJson);
-        const download = response.requested_downloads?.[0] || response;
-        const directUrl = download.url;
-
-        if (directUrl && directUrl.startsWith('http')) {
-          // Lưu vào Cache 1 tiếng
-          this.streamCache.set(finalUrl, {
-            directUrl,
-            expireAt: Date.now() + 3600 * 1000
-          });
-          return { stream: directUrl, type: 'arbitrary' };
-        }
+        return { stream: child.stdout, type: StreamType.Arbitrary, process: child };
       }
     } catch (ytDlpErr) {
-      console.warn('[yt-dlp direct url error]:', ytDlpErr.message);
+      console.warn('[yt-dlp direct pipe error]:', ytDlpErr.message);
       // Nếu là link YouTube, không rơi xuống play-dl vì Cloud IP sẽ bị chặn
       if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
         throw ytDlpErr;
