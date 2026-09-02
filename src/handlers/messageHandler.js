@@ -47,12 +47,12 @@ class MessageHandler {
       const queue = queueManager.get(message.guild);
 
       // --- 2.1. Lệnh Trợ Giúp & Trạng Thái ---
-      if (['help', 'menu', 'huongdan'].includes(command)) {
+      if (['lenh', 'giup', 'huongdan', 'menu', 'help'].includes(command)) {
         const embed = Embeds.help();
         return message.reply({ embeds: [embed] });
       }
 
-      if (['status', 'ping', 'uptime'].includes(command)) {
+      if (['trangthai', 'tt', 'ping', 'status', 'uptime'].includes(command)) {
         const uptimeSec = Math.floor(process.uptime());
         const hours = Math.floor(uptimeSec / 3600);
         const minutes = Math.floor((uptimeSec % 3600) / 60);
@@ -73,7 +73,7 @@ class MessageHandler {
       }
 
       // --- 2.2. Lệnh Phòng Thoại ---
-      if (['join', 'vao', 'call', 'bot'].includes(command)) {
+      if (['vao', 'goi', 'join', 'call', 'bot'].includes(command)) {
         const memberVoice = message.member?.voice?.channel;
         if (!memberVoice) {
           const warn = await message.reply('⚠️ Bạn cần tham gia một phòng thoại trước!');
@@ -85,25 +85,25 @@ class MessageHandler {
         await queue.connect(memberVoice);
 
         const replyMsg = await message.reply({
-          content: `🟢 **Đã kết nối vào phòng:** <#${memberVoice.id}>!\n*(Dán link nhạc vào chat hoặc gõ \`!p <tên bài>\` để phát nhạc)* 🎵`,
+          content: `🟢 **Đã kết nối vào phòng:** <#${memberVoice.id}>!\n*(Dán link nhạc vào chat hoặc gõ \`!phat <tên bài>\` để phát nhạc)* 🎵`,
           components: [Components.voiceActionRow()]
         });
         setTimeout(() => replyMsg.delete().catch(() => {}), 15000);
         return;
       }
 
-      if (['leave', 'out', 'kick', 'roi'].includes(command)) {
+      if (['ra', 'cut', 'roi', 'leave', 'out', 'kick'].includes(command)) {
         queue.destroy();
         const leaveMsg = await message.reply('🔴 **Đã ngắt kết nối và rời khỏi phòng thoại!**');
         setTimeout(() => leaveMsg.delete().catch(() => {}), 5000);
         return;
       }
 
-      // --- 2.3. Lệnh Phát Nhạc (!play, !p, !hat) ---
-      if (['play', 'p', 'hat'].includes(command)) {
+      // --- 2.3. Lệnh Phát Nhạc (!phat, !p, !hat, !nhac) ---
+      if (['phat', 'hat', 'nhac', 'play', 'p'].includes(command)) {
         const query = args.join(' ').trim();
         if (!query) {
-          const warn = await message.reply('⚠️ Vui lòng cung cấp link bài hát hoặc tên bài hát cần tìm! (Ví dụ: `!p Kyoto in the rain`)');
+          const warn = await message.reply('⚠️ Vui lòng cung cấp link bài hát hoặc tên bài hát cần tìm! (Ví dụ: `!phat Kyoto in the rain` hoặc `!p tên bài`)');
           setTimeout(() => warn.delete().catch(() => {}), 6000);
           return;
         }
@@ -165,7 +165,7 @@ class MessageHandler {
       }
 
       // --- 2.4. Các lệnh điều khiển âm nhạc ---
-      if (['pause', 'dung'].includes(command)) {
+      if (['tamdung', 'dung', 'pause'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
         const isPaused = queue.togglePause();
         const notice = await message.reply(isPaused ? '⏸️ **Đã tạm dừng bài hát.**' : '▶️ **Đã tiếp tục phát bài hát.**');
@@ -173,7 +173,7 @@ class MessageHandler {
         return;
       }
 
-      if (['resume', 'tieptuc'].includes(command)) {
+      if (['tieptuc', 'tiep', 'resume'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào đang chạy!');
         if (queue.isPaused) queue.togglePause();
         const notice = await message.reply('▶️ **Đã tiếp tục phát bài hát.**');
@@ -181,7 +181,7 @@ class MessageHandler {
         return;
       }
 
-      if (['skip', 'next', 'fs', 'boqua'].includes(command)) {
+      if (['qua', 'chuyen', 'boqua', 'skip', 'next', 'fs'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Không có bài hát nào để bỏ qua!');
         queue.skip();
         const notice = await message.reply('⏭️ **Đã bỏ qua bài hát hiện tại!**');
@@ -189,28 +189,28 @@ class MessageHandler {
         return;
       }
 
-      if (['stop', 'tat'].includes(command)) {
+      if (['tat', 'dunglai', 'stop'].includes(command)) {
         queue.stop();
         const notice = await message.reply('⏹️ **Đã dừng hẳn và dọn sạch hàng đợi!**');
         setTimeout(() => notice.delete().catch(() => {}), 5000);
         return;
       }
 
-      if (['queue', 'q', 'list', 'hangdoi'].includes(command)) {
+      if (['danhsach', 'ds', 'hangdoi', 'queue', 'q', 'list'].includes(command)) {
         const embed = Embeds.queueList(queue, 1);
         const components = Components.queueControls(queue, 1);
         const qMsg = await message.reply({ embeds: [embed], components });
         return;
       }
 
-      if (['nowplaying', 'np', 'dangphat'].includes(command)) {
+      if (['bai', 'dangphat', 'nowplaying', 'np'].includes(command)) {
         if (!queue.currentSong) return message.reply('⚠️ Hiện tại không có bài hát nào đang phát!');
         const embed = Embeds.nowPlaying(queue.currentSong, queue, queue.isPaused ? 'Tạm dừng' : 'Đang phát');
         const components = [Components.playerControls(queue.isPaused, queue.loopMode)];
         return message.reply({ embeds: [embed], components });
       }
 
-      if (['loop', 'l', 'lap'].includes(command)) {
+      if (['lap', 'loop', 'l'].includes(command)) {
         const loopMode = queue.cycleLoopMode();
         const labels = ['❌ Đã tắt lặp', '🔂 Đang lặp bài hiện tại', '🔁 Đang lặp toàn bộ hàng đợi'];
         const notice = await message.reply(`🔁 **${labels[loopMode]}**`);
@@ -218,7 +218,7 @@ class MessageHandler {
         return;
       }
 
-      if (['shuffle', 'xaot擷', 'daobai'].includes(command)) {
+      if (['tron', 'xao', 'daobai', 'shuffle'].includes(command)) {
         if (queue.songs.length < 2) return message.reply('⚠️ Hàng đợi cần tối thiểu 2 bài hát để xáo trộn!');
         queue.shuffle();
         const notice = await message.reply('🔀 **Đã xáo trộn ngẫu nhiên toàn bộ danh sách chờ!**');
@@ -227,20 +227,20 @@ class MessageHandler {
       }
 
       // --- 2.5. Lệnh Voice Announcer & Giọng Nói ---
-      if (command === 'tts') {
+      if (['docten', 'tts'].includes(command)) {
         const sub = args[0]?.toLowerCase();
         if (sub === 'on' || sub === 'bat') queue.ttsEnabled = true;
         else if (sub === 'off' || sub === 'tat') queue.ttsEnabled = false;
         else queue.ttsEnabled = !queue.ttsEnabled;
 
-        const notice = await message.reply(`📢 **Voice Announcer (TTS):** \`${queue.ttsEnabled ? '🟢 ĐANG BẬT' : '🔴 ĐANG TẮT'}\``);
+        const notice = await message.reply(`📢 **Voice Announcer (Đọc tên vào phòng):** \`${queue.ttsEnabled ? '🟢 ĐANG BẬT' : '🔴 ĐANG TẮT'}\``);
         setTimeout(() => notice.delete().catch(() => {}), 6000);
         return;
       }
 
-      if (['say', 'speak', 'noi'].includes(command)) {
+      if (['noi', 'doc', 'say', 'speak'].includes(command)) {
         const textToSay = args.join(' ').trim();
-        if (!textToSay) return message.reply('⚠️ Vui lòng nhập nội dung muốn bot nói! (Ví dụ: `!say Chào cả nhà`)');
+        if (!textToSay) return message.reply('⚠️ Vui lòng nhập nội dung muốn bot nói! (Ví dụ: `!noi Chào cả nhà`)');
 
         const memberVoice = message.member?.voice?.channel;
         if (!memberVoice) return message.reply('⚠️ Bạn cần vào phòng thoại trước để nghe bot nói!');
