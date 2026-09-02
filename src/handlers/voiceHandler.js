@@ -44,32 +44,32 @@ class VoiceHandler {
       const realHumans = currentChannel.members.filter(m => !m.user.bot);
 
       if (realHumans.size === 0) {
-        // Nếu phòng hoàn toàn không còn ai, kích hoạt đếm ngược 15 giây
+        // Nếu phòng hoàn toàn không còn ai, kích hoạt đếm ngược đúng 10 giây
         if (!queue.leaveTimeout) {
-          console.log(`[Auto-Leave]: Phòng thoại "${currentChannel.name}" trống. Bot sẽ tự thoát sau 15 giây nếu không ai vào lại.`);
+          console.log(`[Auto-Leave]: Phòng thoại "${currentChannel.name}" trống. Bot sẽ tự thoát sau đúng 10 giây nếu không ai vào lại.`);
 
           queue.leaveTimeout = setTimeout(async () => {
-            // Kiểm tra lại lần cuối sau 15 giây
+            // Kiểm tra lại lần cuối sau 10 giây
             const recheckChannel = guild.channels.cache.get(botVoiceId) || queue.voiceChannel;
             const remainingHumans = recheckChannel?.members ? recheckChannel.members.filter(m => !m.user.bot) : null;
 
             if (!remainingHumans || remainingHumans.size === 0) {
-              console.log(`[Auto-Leave]: Phòng vẫn trống sau 15 giây. Bot tự động rời phòng.`);
+              console.log(`[Auto-Leave]: Phòng vẫn trống sau 10 giây. Bot tự động rời phòng.`);
 
               if (queue.textChannel) {
                 try {
-                  const notice = await queue.textChannel.send('👋 Không còn ai trong phòng thoại, bot xin phép rời phòng để tiết kiệm tài nguyên!');
-                  setTimeout(() => notice.delete().catch(() => {}), 8000);
+                  const notice = await queue.textChannel.send('👋 Không còn ai trong phòng thoại, bot tự động rời phòng để tiết kiệm tài nguyên!');
+                  setTimeout(() => notice.delete().catch(() => {}), 6000);
                 } catch (e) {}
               }
 
               queue.destroy();
             }
             queue.leaveTimeout = null;
-          }, 15000); // 15 giây
+          }, 10000); // Chính xác 10 giây
         }
       } else {
-        // Nếu có người vào lại phòng trước khi hết 15 giây, lập tức hủy đếm ngược
+        // Nếu có người vào lại phòng trước khi hết 10 giây, lập tức hủy đếm ngược
         if (queue.leaveTimeout) {
           clearTimeout(queue.leaveTimeout);
           queue.leaveTimeout = null;
