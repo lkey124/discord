@@ -17,8 +17,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/voice": "^0.18.0",
+    "@discordjs/voice": "^0.19.2",
     "@distube/ytdl-core": "^4.16.12",
+    "@snazzah/davey": "^0.1.12",
     "@stablelib/xchacha20poly1305": "^2.0.1",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
