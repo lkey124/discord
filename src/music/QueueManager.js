@@ -118,6 +118,11 @@ class GuildQueue {
       this.player.play(resource);
 
       await this.sendOrUpdatePlayerMessage();
+
+      // Tải trước bài tiếp theo trong hàng đợi ngầm (Prefetch) để chuyển bài tức thì
+      if (this.songs.length > 0 && this.songs[0]) {
+        Extractor.prefetch(this.songs[0]);
+      }
     } catch (err) {
       console.error('[PlayNext Error]:', err);
       if (this.textChannel) {

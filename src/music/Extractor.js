@@ -193,8 +193,21 @@ class Extractor {
     }
   }
 
+  static streamCache = new Map();
+
   /**
-   * Tạo stream audio không quảng cáo từ URL bài hát (Hỗ trợ yt-dlp chống chặn định dạng)
+   * Tải trước bài tiếp theo trong hàng đợi vào RAM (Prefetching)
+   * @param {Song} song
+   */
+  static async prefetch(song) {
+    if (!song || !song.url || this.streamCache.has(song.url)) return;
+    try {
+      await this.getAudioStream(song);
+    } catch (e) {}
+  }
+
+  /**
+   * Tạo stream audio không quảng cáo từ URL bài hát (Tốc độ cao với Cache & Android Client)
    * @param {Song} song
    * @returns {Promise<{ stream: any, type: string }>}
    */
@@ -213,7 +226,13 @@ class Extractor {
       }
     }
 
-    // 1. Ưu tiên sử dụng yt-dlp trích xuất Direct HTTPS CDN URL (Chấm dứt lỗi Premature close)
+    // 1. Kiểm tra Bộ nhớ đệm RAM (Phản hồi tức thì 0ms nếu đã có)
+    const cached = this.streamCache.get(finalUrl);
+    if (cached && Date.now() < cached.expireAt) {
+      return { stream: cached.directUrl, type: 'arbitrary' };
+    }
+
+    // 2. Ưu tiên sử dụng yt-dlp Android client tốc độ cao (Bypass kiểm tra bot & siêu nhanh)
     try {
       const binPath = await this.getYtDlpPath();
       if (binPath) {
@@ -221,12 +240,20 @@ class Extractor {
         const directUrl = (await ytDlp.execPromise([
           '-g',
           '-f', 'ba/b',
-          '--extractor-args', 'youtube:player_client=android,web',
+          '--extractor-args', 'youtube:player_client=android',
+          '--no-warnings',
+          '--no-check-certificates',
+          '--prefer-free-formats',
           '--no-playlist',
           finalUrl
         ])).trim();
 
         if (directUrl && directUrl.startsWith('http')) {
+          // Lưu vào Cache 1 tiếng
+          this.streamCache.set(finalUrl, {
+            directUrl,
+            expireAt: Date.now() + 3600 * 1000
+          });
           return { stream: directUrl, type: 'arbitrary' };
         }
       }
@@ -234,7 +261,7 @@ class Extractor {
       console.warn('[yt-dlp direct url error]:', ytDlpErr.message, 'Đang thử phương thức phụ...');
     }
 
-    // 2. Dự phòng bằng play-dl
+    // 3. Dự phòng bằng play-dl
     return await play.stream(finalUrl, { quality: 2 });
   }
 }
