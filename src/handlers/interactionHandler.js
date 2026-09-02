@@ -103,6 +103,17 @@ class InteractionHandler {
       if (!queue.currentSong) {
         return interaction.reply({ content: '⚠️ Không có bài hát nào đang chạy!', ephemeral: true });
       }
+
+      // Kiểm tra quyền: Chỉ người gửi bài hoặc Admin mới được tạm dừng
+      const isOwnerOrAdmin = (queue.currentSong.requester?.id === interaction.user.id) || config.isAdmin(interaction.user);
+      if (!isOwnerOrAdmin) {
+        const reqName = queue.currentSong.requester ? `<@${queue.currentSong.requester.id}>` : 'người yêu cầu';
+        return interaction.reply({
+          content: `⚠️ Chỉ có người gửi bài hát này (${reqName}) hoặc Admin mới có quyền tạm dừng!`,
+          ephemeral: true
+        });
+      }
+
       const isPaused = queue.togglePause();
       return interaction.reply({
         content: isPaused ? '⏸️ Đã tạm dừng bài hát.' : '▶️ Đã tiếp tục phát bài hát.',
@@ -125,6 +136,20 @@ class InteractionHandler {
     }
 
     if (customId === 'btn_player_stop') {
+      if (!queue.currentSong) {
+        return interaction.reply({ content: '⚠️ Không có bài hát nào đang phát!', ephemeral: true });
+      }
+
+      // Kiểm tra quyền: Chỉ người gửi bài hoặc Admin mới được tắt
+      const isOwnerOrAdmin = (queue.currentSong.requester?.id === interaction.user.id) || config.isAdmin(interaction.user);
+      if (!isOwnerOrAdmin) {
+        const reqName = queue.currentSong.requester ? `<@${queue.currentSong.requester.id}>` : 'người yêu cầu';
+        return interaction.reply({
+          content: `⚠️ Chỉ có người gửi bài hát này (${reqName}) hoặc Admin mới có quyền tắt nhạc!`,
+          ephemeral: true
+        });
+      }
+
       queue.stop();
       return interaction.reply({ content: '⏹️ Đã dừng hẳn và dọn sạch hàng đợi!', ephemeral: true });
     }
