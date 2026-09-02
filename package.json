@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "postinstall": "node scripts/postinstall.js",
     "dev": "node --watch index.js"
   },
   "keywords": [
@@ -29,6 +30,7 @@
     "opusscript": "^0.1.1",
     "play-dl": "^1.9.7",
     "tweetnacl": "^1.0.3",
-    "yt-dlp-wrap": "^2.3.12"
+    "yt-dlp-wrap": "^2.3.12",
+    "yt-search": "^2.13.1"
   }
 }
