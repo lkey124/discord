@@ -220,7 +220,8 @@ class Extractor {
         const ytDlp = new YTDlpWrap(binPath);
         const directUrl = (await ytDlp.execPromise([
           '-g',
-          '-f', 'bestaudio',
+          '-f', 'ba/b',
+          '--extractor-args', 'youtube:player_client=android,web',
           '--no-playlist',
           finalUrl
         ])).trim();
