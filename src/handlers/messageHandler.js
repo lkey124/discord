@@ -140,12 +140,11 @@ class MessageHandler {
 
         queue.textChannel = message.channel;
         if (!queue.connection || !queue.voiceChannel) {
-          await queue.connect(memberVoice);
+          queue.connect(memberVoice).catch(e => console.warn('[Phat Connect Voice Warn]:', e.message));
         }
 
-        await message.delete().catch(() => {});
+        message.delete().catch(() => {});
 
-        const statusMsg = await message.channel.send(`🔍 Đang tìm kiếm bài hát: **${query}**...`);
         try {
           const songs = await Extractor.resolve(query, message.author);
           if (songs.length === 0) {
@@ -393,14 +392,13 @@ class MessageHandler {
 
     queue.textChannel = message.channel;
 
+    // Kết nối Voice Channel song song trong nền theo chuẩn Muse (không làm trễ luồng phát)
     if (!queue.connection || !queue.voiceChannel) {
-      await queue.connect(memberVoice);
+      queue.connect(memberVoice).catch(e => console.warn('[Auto-Connect Voice Warn]:', e.message));
     }
 
-    // Tự động xóa tin nhắn dán link của người dùng để giữ kênh chat sạch đẹp
-    await message.delete().catch(() => {});
-
-    const statusMsg = await message.channel.send('🔍 Đang bóc tách luồng audio sạch 100% không quảng cáo...');
+    // Tự động xóa tin nhắn dán link của người dùng trong nền để giữ kênh chat sạch đẹp
+    message.delete().catch(() => {});
 
     try {
       let addedCount = 0;
@@ -408,14 +406,10 @@ class MessageHandler {
         const songs = await Extractor.resolve(url, message.author);
         if (songs.length === 0) {
           const errNotice = await message.channel.send(`❌ Không thể bóc tách bài hát từ liên kết này! Bạn hãy thử gõ lệnh: \`!phat <tên bài>\` nhé!`);
-          setTimeout(() => errNotice.delete().catch(() => {}), 10000);
+          setTimeout(() => errNotice.delete().catch(() => {}), 8000);
           continue;
         }
 
-        // Xóa thông báo bóc tách ngay khi có kết quả bài hát
-        statusMsg.delete().catch(() => {});
-
-        let addedCount = 0;
         for (const song of songs) {
           if (!queue.currentSong) {
             queue.songs.push(song);

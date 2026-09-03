@@ -59,9 +59,13 @@ class GuildQueue {
   }
 
   /**
-   * Kết nối vào Voice Channel
+   * Kết nối vào Voice Channel siêu tốc (Non-blocking theo chuẩn Muse)
    */
   async connect(voiceChannel) {
+    if (this.connection && this.voiceChannel?.id === voiceChannel.id) {
+      return this.connection;
+    }
+
     this.voiceChannel = voiceChannel;
     this.connection = joinVoiceChannel({
       channelId: voiceChannel.id,
@@ -71,11 +75,11 @@ class GuildQueue {
       selfMute: false
     });
 
-    try {
-      await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
-    } catch (e) {
-      console.warn('[VoiceConnection]: Đang hoàn tất bắt tay UDP...');
-    }
+    // Kết nối trực tiếp player vào luồng voice ngay lập tức
+    this.connection.subscribe(this.player);
+
+    // Bắt tay UDP kiểm tra kết nối chạy ngầm trong nền (không làm trễ luồng phát nhạc)
+    entersState(this.connection, VoiceConnectionStatus.Ready, 15000).catch(() => {});
 
     // Lắng nghe trạng thái ngắt kết nối
     this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -89,8 +93,7 @@ class GuildQueue {
       }
     });
 
-    // Mặc định kết nối tới player phát nhạc
-    this.connection.subscribe(this.player);
+    return this.connection;
   }
 
   /**

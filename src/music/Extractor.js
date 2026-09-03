@@ -37,17 +37,42 @@ class Extractor {
       cleanUrl = cleanUrl.replace(/&list=RD[^&]+/gi, '').replace(/&start_radio=[^&]+/gi, '').replace(/&index=[^&]+/gi, '');
     }
 
-    // 2. Nhận diện Video ID của YouTube nếu là link -> Dùng yt-search cực nhanh & không bao giờ bị chặn
+    // 2. Nhận diện Video ID của YouTube nếu là link -> Dùng YouTube oEmbed chính thức siêu tốc (~200ms)
     const ytVideoIdMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
     if (ytVideoIdMatch) {
       const videoId = ytVideoIdMatch[1];
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+      // 2.1. Thử lấy siêu tốc qua YouTube oEmbed API (chỉ mất ~200ms, không quét HTML, không bị chặn bot)
+      try {
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`, {
+          signal: AbortSignal.timeout(1200)
+        });
+        if (oembedRes.ok) {
+          const odata = await oembedRes.json();
+          return [
+            new Song({
+              title: odata.title || 'YouTube Track',
+              url: videoUrl,
+              duration: 'Đang phát',
+              durationSec: 0,
+              thumbnail: odata.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+              author: odata.author_name || 'YouTube',
+              requester,
+              source: 'youtube'
+            })
+          ];
+        }
+      } catch (oembedErr) {}
+
+      // 2.2. Dự phòng bằng yt-search nếu oEmbed gặp sự cố
       try {
         const r = await yts({ videoId });
         if (r && r.title) {
           return [
             new Song({
               title: r.title || 'YouTube Track',
-              url: r.url || `https://www.youtube.com/watch?v=${videoId}`,
+              url: r.url || videoUrl,
               duration: r.duration?.timestamp || Song.formatDuration(r.duration?.seconds || 0),
               durationSec: r.duration?.seconds || 0,
               thumbnail: r.thumbnail || r.image || '',
@@ -60,6 +85,20 @@ class Extractor {
       } catch (ytsErr) {
         console.warn('[yt-search videoId error]:', ytsErr.message);
       }
+
+      // 2.3. Fallback tức thì 0ms (phát nhạc ngay, không để người dùng chờ)
+      return [
+        new Song({
+          title: 'YouTube Track',
+          url: videoUrl,
+          duration: 'Đang phát',
+          durationSec: 0,
+          thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          author: 'YouTube',
+          requester,
+          source: 'youtube'
+        })
+      ];
     }
 
     // 3. Xử lý Spotify Track / Playlist
